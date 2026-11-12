@@ -19,7 +19,7 @@ import { skapaTjanst } from './tjanst.js';
 import { anropaSynk, iProcessenSynk } from './klient.js';
 import { vardgivare } from './konsumenter.js';
 import { datumRiv } from '../tjanstekontrakt.js';
-import { hittaPaToken, gallandeId } from '../identitet.js';
+import { patientFranPersonId } from './journal.js';
 import { vardenhetFor } from '../atkomst.js';
 
 export const NATIONELL = 'SE0000000000-SIMNATIONELL';
@@ -86,7 +86,8 @@ function sakra(db) {
   db.query("INSERT INTO rivta_sim_status (nyckel, varde) VALUES ('sparrar', ?)").run(nu);
 }
 
-const patientAv = (db, pnr) => { const f = hittaPaToken(db, String(pnr ?? '')); return f ? gallandeId(db, f) : null; };
+// Samma uppslag av patienten som i Vårdkällans producenter: exakt tolv siffror, som personnummer eller samordningsnummer.
+const patientAv = (db, pnr) => patientFranPersonId(db, pnr);
 const pnrAv = (db, pid) => db.query('SELECT personnummer FROM patienter WHERE id = ?').get(pid)?.personnummer ?? null;
 const resultat = (kod = 'OK', text = 'Simulerad tjänst i demon.') => ({ ResultCode: kod, ResultText: text });
 const slutet = '9999-12-31T23:59:59';

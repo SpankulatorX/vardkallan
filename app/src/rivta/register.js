@@ -10,7 +10,7 @@ import { randomUUID } from 'node:crypto';
 import { kontrakt } from './kontrakt.js';
 import { tjanst, anropa as anropaSim, NATIONELL } from './nationella.js';
 import { vardgivare } from './konsumenter.js';
-import { hittaPaToken, gallandeId } from '../identitet.js';
+import { patientFranPersonId } from './journal.js';
 import { vardenhetFor, kanRoll } from '../atkomst.js';
 import { Fel } from '../db.js';
 
@@ -86,8 +86,8 @@ export function hsaPerson(db, personal, id) {
 const KON = { man: 'M', kvinna: 'K', M: 'M', K: 'K' };
 tjanst.registrera(PU, ({ db }, { begaran }) => ({
   resident: (sakraKopior(db), begaran.personId ?? []).map(pnr => {
-    const f = hittaPaToken(db, String(pnr));
-    const p = f ? db.query('SELECT * FROM rivta_sim_pu WHERE patient_id = ?').get(gallandeId(db, f)) : null;
+    const pid = patientFranPersonId(db, pnr);
+    const p = pid ? db.query('SELECT * FROM rivta_sim_pu WHERE patient_id = ?').get(pid) : null;
     if (!p) return null;
     return {
       Sekretessmarkering: p.skyddad ? 'J' : 'N',
@@ -148,7 +148,7 @@ tjanst.registrera(EI, ({ db }, { begaran }) => {
     vardenhet_hsa TEXT NOT NULL, kallsystem TEXT NOT NULL, senast TEXT, uppdaterad TEXT NOT NULL)`);
   for (const t of begaran.engagementTransaction ?? []) {
     const e = t.engagement;
-    const pid = (() => { const f = hittaPaToken(db, e.registeredResidentIdentification); return f ? gallandeId(db, f) : null; })();
+    const pid = patientFranPersonId(db, e.registeredResidentIdentification);
     if (!pid) continue;
     const nyckel = [e.registeredResidentIdentification, e.serviceDomain, e.categorization, e.logicalAddress, e.businessObjectInstanceIdentifier, e.sourceSystem, e.dataController].join('|');
     if (t.deleteFlag) db.query('DELETE FROM rivta_sim_engagemang WHERE nyckel = ?').run(nyckel);

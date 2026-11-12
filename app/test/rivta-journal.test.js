@@ -59,14 +59,51 @@ describe('Tjänstekontrakt i RIVTA, journalen', () => {
     const db = nyDb();
     const hsa = (id) => db.query('SELECT hsa_id FROM personal WHERE id = ?').get(id).hsa_id;
     const fraga = (pnr, person, enhet, vg = VG) => anropa(db, J.ASSERT_CARE_ENGAGEMENT, { performer: hsa(person), subjectOfCareId: pnr, careUnitHsaIdentity: enhet, careGiverHsaIdentity: vg }, rivta.konsumenter.SJF);
+    const loggen = () => db.query("SELECT grund, resultat FROM atkomstlogg WHERE resurs LIKE 'rivta/AssertCareEngagement%' ORDER BY id DESC LIMIT 1").get();
+    const antal = () => db.query("SELECT count(*) AS n FROM atkomstlogg WHERE resurs LIKE 'rivta/AssertCareEngagement%'").get().n;
     expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(true);
-    // Fel vårdenhet för personen, fel vårdgivare, en patient utan relation och skyddade personuppgifter ger nej.
+    expect(loggen()).toEqual({ grund: 'systemkonto', resultat: 'tillaten' });
+    // Fel vårdenhet för personen ger nej, men frågan är tillåten.
     expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0150')).HasCareEngagement).toBe(false);
+    expect(loggen()).toEqual({ grund: 'systemkonto', resultat: 'tillaten' });
+    // Fel vårdgivare och skyddade personuppgifter: nej, och nekat i loggen.
     expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0120', 'SE0000000000-ANNAN')).HasCareEngagement).toBe(false);
-    expect((await fraga('194505124752', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect(loggen()).toEqual({ grund: 'nekad', resultat: 'nekad' });
     expect((await fraga('198404162383', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
-    expect(db.query("SELECT count(*) AS n FROM atkomstlogg WHERE patient_id = 'p01' AND resurs LIKE 'rivta/AssertCareEngagement%'").get().n).toBe(3);
+    expect(loggen()).toEqual({ grund: 'nekad', resultat: 'nekad' });
+    // En identitet som inte är ett personnummer eller samordningsnummer med tolv siffror ger nej utan uppslag. En form
+    // som schemat inte tillåter ger ett fel redan i valideringen.
+    const fore = antal();
+    expect((await fraga('19450202T732', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect((await fraga('191212121212', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect(antal()).toBe(fore);
+    await expect(fraga('19450202-4732', 'lak-kard', 'SE2321000164-VK0120')).rejects.toThrow('följer inte schemat');
+    await expect(fraga('urn:oid:1.2.752.129.2.1.3.1|194502024732', 'lak-kard', 'SE2321000164-VK0120')).rejects.toThrow('följer inte schemat');
+    // En spärrad vårdenhet ger nej, också när patienten har samtyckt till sammanhållen journalföring på enheten.
+    db.query("INSERT INTO sammanhallen_samtycken (patient_id, enhet_id, registrerat, registrerat_av) VALUES ('p01', 'uso-kard', ?, 'lak-kard')").run(new Date().toISOString());
+    db.query("INSERT INTO sparrar (patient_id, enhet_id, aktiv, registrerad) VALUES ('p01', 'uso-kard', 1, ?)").run(new Date().toISOString());
+    expect((await fraga('194502024732', 'lak-kard', 'SE2321000164-VK0120')).HasCareEngagement).toBe(false);
+    expect(loggen()).toEqual({ grund: 'nekad', resultat: 'nekad' });
+    // En vårdenhet som kontot inte omfattar ger nej.
+    const db2 = nyDb();
+    rivta.konsumenter.sakraDemo(db2);
+    const kontoId = db2.query('SELECT systemkonto_id FROM rivta_konsumenter WHERE hsa_id = ?').get(rivta.konsumenter.SJF).systemkonto_id;
+    db2.query("UPDATE api_systemkonton SET vardenheter = '[\"uso-ort\"]' WHERE id = ?").run(kontoId);
+    const svar = await anropa(db2, J.ASSERT_CARE_ENGAGEMENT, { performer: db2.query("SELECT hsa_id FROM personal WHERE id = 'lak-kard'").get().hsa_id, subjectOfCareId: '194502024732', careUnitHsaIdentity: 'SE2321000164-VK0120', careGiverHsaIdentity: VG }, rivta.konsumenter.SJF);
+    expect(svar.HasCareEngagement).toBe(false);
+    expect(db2.query("SELECT resultat FROM atkomstlogg WHERE resurs LIKE 'rivta/AssertCareEngagement%'").get().resultat).toBe('nekad');
     // Journalen har ingen anropsbehörighet till kontraktet.
     await expect(anropa(db, J.ASSERT_CARE_ENGAGEMENT, { performer: hsa('lak-kard'), subjectOfCareId: '194502024732', careUnitHsaIdentity: 'SE2321000164-VK0120', careGiverHsaIdentity: VG }, rivta.konsumenter.JOURNALEN)).rejects.toThrow('ingen anropsbehörighet');
+  });
+
+  test('journalens producenter slår bara upp exakt tolv siffror som personnummer eller samordningsnummer', async () => {
+    const db = nyDb();
+    for (const id of ['19450202-4732', '4502024732', '194502024732 ']) {
+      const svar = await anropa(db, J.GET_DIAGNOSIS, { patientId: { id, type: '1.2.752.129.2.1.3.1' } });
+      expect([id, svar.result.resultCode]).toEqual([id, 'ERROR']);
+    }
+    // Rätt nummer med fel typ ger ingen patient.
+    expect((await anropa(db, J.GET_DIAGNOSIS, { patientId: { id: '194502024732', type: '1.2.752.129.2.1.3.3' } })).diagnosis).toBeUndefined();
+    expect((await anropa(db, J.GET_DIAGNOSIS, fraga('194502024732'))).diagnosis.length).toBeGreaterThan(0);
   });
 });
