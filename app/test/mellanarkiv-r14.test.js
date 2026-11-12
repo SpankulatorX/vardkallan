@@ -160,6 +160,21 @@ describe('Mellanarkiv', () => {
     expect(las.data.mellanarkiv.oforandrad).toBe(true);
   }, 30_000);
 
+  test('undantag från visning gäller handlingarna i mellanarkivet, och en undantagen anteckning förs inte över', () => {
+    const d = nyDb();
+    const ins = d.query(`INSERT INTO konfig_andringar (slag, nyckel, varde, giltig_fran, motivering, foreslagen_av, foreslagen, status, beslutad_av, beslutad, galler_fran)
+      VALUES ('undantag', ?, ?, '2020-01-01', 'Test av undantag', 'sysf', '2020-01-01', 'godkand', 'sysf2', '2020-01-01', '2020-01-01')`);
+    ins.run('enhet:vc-tybble', JSON.stringify({ kanaler: ['visning'] }));
+    const synliga = mellanarkiv.synliga(atk(d, 'lak-kard', 'p01', { andra_enheter: true }));
+    expect(synliga.map(r => r.enhet_id)).not.toContain('vc-tybble');
+    expect(synliga.length).toBe(2);
+    // En anteckning med ett eget undantag stannar i journalen och förs inte över.
+    const epikris = d.query("SELECT id FROM anteckningar WHERE patient_id = 'p01' AND typ = 'Epikris' AND skapad < '2015-01-01'").get().id;
+    expect(mellanarkiv.kandidater(d, '2016-01-01').get('p01').anteckningar.map(a => a.id)).toContain(epikris);
+    ins.run(`anteckning:${epikris}`, JSON.stringify({ kanaler: ['visning'] }));
+    expect(mellanarkiv.kandidater(d, '2016-01-01').get('p01')?.anteckningar.map(a => a.id) ?? []).not.toContain(epikris);
+  });
+
   test('mellanarkivet avvisar ett paket med fel, och då förs ingenting över', () => {
     const d = nyDb();
     const valda = mellanarkiv.kandidater(d, '2016-01-01').get('p01');

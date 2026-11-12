@@ -1338,9 +1338,9 @@ function skapa(BAS) {
   startI['E-arkiv och gallring'] = async (page) => { await gaTill(page, '#/arkiv'); await page.waitForSelector('#ar-form'); };
   GOR['overfor-mellanarkiv'] = async (m, page) => {
     await m.klicka(page.locator('#ar-form label.val-rad', { hasText: 'Överföring till mellanarkiv' }), 'Överföring till mellanarkiv');
-    await m.skriv(page.locator('#ar-dnr'), 'RS 2026-777', 'diarienumret');
+    await m.skriv(page.locator('#ar-dnr'), 'Arkiv 2026-777', 'diarienumret');
     await m.klicka(page.locator('#ar-form [type="submit"]'), 'Registrera beslutet');
-    const kort = page.locator('[data-beslut]', { hasText: 'RS 2026-777' }).first();
+    const kort = page.locator('[data-beslut]', { hasText: 'Arkiv 2026-777' }).first();
     await m.klicka(kort.locator('[data-underlag]'), 'Visa underlag');
     await m.klicka(kort.locator('[data-overfor]'), 'För över till mellanarkivet');
     await synlig(page, '.notis', 'överförda till mellanarkivet');

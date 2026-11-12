@@ -23,9 +23,9 @@ function aldersrad(l, hamtad, fel) {
 
 const patientHtml = (p) => `<section class="reserv-patient" aria-labelledby="rp-${esc(p.id)}">
   <h2 id="rp-${esc(p.id)}">${esc(p.namn)} <span class="under-text">${esc(p.personnummer)}, ${esc(p.plats ?? '')}</span></h2>
-  ${p.ordinationer.length ? `<table class="tabell kompakt"><caption class="sr">Ordinationer för ${esc(p.namn)}</caption>
+  ${p.ordinationer.length ? `<div class="tabellrulle"><table class="tabell kompakt"><caption class="sr">Ordinationer för ${esc(p.namn)}</caption>
     <thead><tr><th scope="col">Läkemedel</th><th scope="col">Dosering</th><th scope="col">Tider</th></tr></thead>
-    <tbody>${p.ordinationer.map(o => `<tr><th scope="row">${esc(o.lakemedel)}${o.orsak ? `<span class="under-text">${esc(o.orsak)}</span>` : ''}</th><td>${esc(o.dosering ?? '')}${o.vidBehov ? ' <span class="tagg">Vid behov</span>' : ''}</td><td>${esc((o.tider ?? []).join(', '))}</td></tr>`).join('')}</tbody></table>`
+    <tbody>${p.ordinationer.map(o => `<tr><th scope="row">${esc(o.lakemedel)}${o.orsak ? `<span class="under-text">${esc(o.orsak)}</span>` : ''}</th><td>${esc(o.dosering ?? '')}${o.vidBehov ? ' <span class="tagg">Vid behov</span>' : ''}</td><td>${esc((o.tider ?? []).join(', '))}</td></tr>`).join('')}</tbody></table></div>`
     : '<p class="tom">Inga aktuella ordinationer.</p>'}
   ${p.doser.length ? `<h3>Dagens doser</h3><ul class="reserv-doser">${p.doser.map(d => `<li><span>${esc(klockslag(d.planerad))} ${esc(d.lakemedel)}</span> <span class="tagg">${esc(STATUS[d.status] ?? d.status)}</span>${d.given?.tid ? `<span class="under-text">Registrerad kl. ${esc(klockslag(d.given.tid))}</span>` : ''}</li>`).join('')}</ul>` : ''}
 </section>`;

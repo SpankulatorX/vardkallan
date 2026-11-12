@@ -689,7 +689,7 @@ export const UPPGIFTER = [
   },
   {
     id: 'overfor-mellanarkiv', namn: 'För över äldre journalhandlingar till mellanarkivet', roll: 'ark', start: 'E-arkiv och gallring',
-    text: 'Vårdgivaren har beslutat, med diarienummer RS 2026-777, att äldre journalhandlingar ska föras över till mellanarkivet. Gör det.',
+    text: 'Vårdgivaren har beslutat, med diarienummer Arkiv 2026-777, att äldre journalhandlingar ska föras över till mellanarkivet. Gör det.',
     kontroll: { notis: 'överförda till mellanarkivet' },
   },
   {

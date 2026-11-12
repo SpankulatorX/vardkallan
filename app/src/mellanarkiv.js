@@ -79,8 +79,12 @@ function pekasPa(db, slag) {
   const ids = new Set();
   for (const t of tabellerMedKolumn(db, kolumn)) for (const r of db.query(`SELECT DISTINCT ${kolumn} AS id FROM ${t} WHERE ${kolumn} IS NOT NULL`).all()) ids.add(Number(r.id));
   if (finnsT(db, 'kontrasigneringar')) for (const r of db.query('SELECT post_id AS id FROM kontrasigneringar WHERE typ = ?').all(slag)) ids.add(Number(r.id));
-  if (slag === 'anteckning' && finnsT(db, 'undantag')) {
-    try { for (const r of db.query("SELECT varde FROM undantag WHERE omfang = 'anteckning'").all()) ids.add(Number(r.varde)); } catch { /* äldre schema */ }
+  // Ett undantag från visning för en enskild anteckning (undantag.js, nyckeln anteckning:<id>), också ett som väntar.
+  if (slag === 'anteckning' && finnsT(db, 'konfig_andringar')) {
+    for (const r of db.query("SELECT nyckel FROM konfig_andringar WHERE slag = 'undantag' AND nyckel LIKE 'anteckning:%'").all()) ids.add(Number(r.nyckel.split(':')[1]));
+  }
+  if (slag === 'anteckning' && finnsT(db, 'undantag_begaranden')) {
+    for (const r of db.query('SELECT anteckning_id AS id FROM undantag_begaranden').all()) ids.add(Number(r.id));
   }
   return ids;
 }
@@ -280,8 +284,14 @@ export function synliga(atk) {
   if (!finnsTabell(atk.db) || !kanLasaNagot(atk.personal)) return [];
   const rader = atk.db.query('SELECT * FROM mellanarkiv_handlingar WHERE patient_id = ? ORDER BY datum DESC, id DESC').all(atk.patientId);
   const tillatna = atk.filtrera(rader, handlingFor);
-  return [...filtreraVisning(atk, tillatna.filter(r => r.slag === 'anteckning'), 'anteckning'), ...filtreraVisning(atk, tillatna.filter(r => r.slag === 'matvarde'), 'matvarde')]
+  return [...visas(atk, tillatna.filter(r => r.slag === 'anteckning'), 'anteckning'), ...visas(atk, tillatna.filter(r => r.slag === 'matvarde'), 'matvarde')]
     .sort((a, b) => String(b.datum).localeCompare(String(a.datum)) || b.id - a.id);
+}
+// Undantagen från visning prövas på vårdenhet och typ. Ett undantag för en enskild anteckning gäller en anteckning i den
+// aktiva journalen, och en sådan förs aldrig över (pekasPa), så handlingens eget id får inte jämföras med anteckningarnas.
+function visas(atk, rader, sort) {
+  const kvar = new Set(filtreraVisning(atk, rader.map(r => ({ ...r, id: null, ursprung: r })), sort).map(x => x.ursprung));
+  return rader.filter(r => kvar.has(r));
 }
 
 const kort = (db, r) => ({
@@ -312,7 +322,7 @@ export function handlingRad(db, id) {
 export function las(atk, r) {
   if (r.patient_id !== atk.patientId) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
   atk.krav(handlingFor(r), { resurs: { enhet_id: r.enhet_id }, beskrivning: `mellanarkiv:${r.id}` });
-  if (!filtreraVisning(atk, [r], r.slag).length) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
+  if (!visas(atk, [r], r.slag).length) throw new Fel(404, 'Uppgiften finns inte.', 'saknas');
   atk.logga(handlingFor(r), atk.grund(), `mellanarkiv:${r.id}`);
   const p = atk.db.query('SELECT id, mottaget, kalla, sha256 FROM mellanarkiv_paket WHERE id = ?').get(r.paket_id);
   const resurs = JSON.parse(r.resurs);

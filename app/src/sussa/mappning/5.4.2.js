@@ -30,6 +30,7 @@ export default medR9r5([
       `${MA}utan vårdrelation är en handling som en som inte finns, och det nekade försöket loggas`,
       `${MA}varje läsning loggas med handlingens id, innehållet är kontrollerat oförändrat, och handlingarna går inte att ändra eller radera`,
       `${MA}arkivarien registrerar ett beslut, systemet tar fram underlaget och för över äldre handlingar, som sedan visas i journalen som förut`,
+      `${MA}undantag från visning gäller handlingarna i mellanarkivet, och en undantagen anteckning förs inte över`,
       `${MA}mellanarkivet avvisar ett paket med fel, och då förs ingenting över`,
       `${MA}tidslinjen och sökningen i journalen tar med handlingarna, märkta Ur mellanarkivet`,
       `${MA}handlingarna följer journalen vid en sammanslagning och raderas med hela journalen efter ett beslut om förstöring`,
