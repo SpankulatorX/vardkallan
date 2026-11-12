@@ -111,7 +111,7 @@ const ROLL_HANDLING = {
 const NEKAD = 'Du har inte behörighet till uppgifterna, eller så finns ingen sådan patient. Försöket är loggat.';
 const TABELL = { Composition: 'anteckningar', Condition: 'diagnoser', Flag: 'uppmarksamhet', AllergyIntolerance: 'overkanslighet', Encounter: 'vardkontakter', Observation: 'matvarden', Procedure: 'atgarder' };
 
-const datumRiv = (iso) => (iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).replace(/[- :]/g, '').slice(0, 14) : null);
+export const datumRiv = (iso) => (iso ? new Date(iso).toLocaleString('sv-SE', { timeZone: 'Europe/Stockholm' }).replace(/[- :]/g, '').slice(0, 14) : null);
 
 // Begäran: { patientId: { id, type }, careUnitHSAId: [], datePeriod: { start, end }, logicalAddress }.
 // Svaret: kontraktets lista och result { resultCode, logId, message }.
@@ -143,18 +143,8 @@ export function anropa(ctx, kontrakt, body = {}) {
   const start = body.datePeriod?.start ? String(body.datePeriod.start) : null;
   const slut = body.datePeriod?.end ? String(body.datePeriod.end) : null;
   const base = `${url.protocol}//${url.host}`;
-  const lista = [];
-  for (const typRes of RESURSER[kontrakt]) {
-    // Samma prövning och loggning som FHIR-API:t. Kontraktets namn står i loggens resurs.
-    const u = new URL(`${base}/fhir/${typRes}?patient=${encodeURIComponent(pid)}&_kontrakt=${kontrakt}`);
-    let svar;
-    try { svar = fhir.hantera({ db, personal, invanare: null, nekade: null, valFor: ctx.valFor, url: u, base }); } catch (e) {
-      // Nekandet är redan loggat på patienten i behörighetsmotorn. Svaret är detsamma som för en patient som inte finns.
-      if (e instanceof Fel && (e.status === 403 || e.status === 404)) throw new Fel(403, NEKAD, 'nekad');
-      throw e;
-    }
-    for (const e of svar.body.entry ?? []) lista.push(rivPost(db, kontrakt, e.resource, { id: pidText.replace(/\D/g, ''), type: typ }, vardgivare));
-  }
+  const lista = fhirResurser({ db, personal, valFor: ctx.valFor, base }, kontrakt, pid)
+    .map(r => rivPost(db, kontrakt, r, { id: pidText.replace(/\D/g, ''), type: typ }, vardgivare));
   const filtrerad = lista.filter(x => x
     && (!enheter.size || enheter.has(x.header.accountableHealthcareProfessional?.healthcareProfessionalCareUnitHSAId))
     && (!start || (x.header.documentTime ?? '').slice(0, 8) >= start) && (!slut || (x.header.documentTime ?? '').slice(0, 8) <= slut));
@@ -165,7 +155,25 @@ export function anropa(ctx, kontrakt, body = {}) {
   };
 }
 
-function enhetAv(db, resurs) {
+// Runda 14, r2: resurserna för ett kontrakt, lästa genom FHIR-API:t med samma prövning och loggning. Kontraktets namn
+// står i loggens resurs, och för ett anrop med tjänstekontrakt i RIVTA också den anropande organisationen (extra).
+// Kastar Fel 403 med samma text för en patient som inte finns och en patient utan behörighet.
+export function fhirResurser({ db, personal, valFor = () => ({}), base = 'https://vardkallan.local' }, kontrakt, pid, { typer = RESURSER[kontrakt], extra = '' } = {}) {
+  const ut = [];
+  for (const typRes of typer) {
+    const u = new URL(`${base}/fhir/${typRes}?patient=${encodeURIComponent(pid)}&_kontrakt=${kontrakt}${extra}`);
+    let svar;
+    try { svar = fhir.hantera({ db, personal, invanare: null, nekade: null, valFor, url: u, base }); } catch (e) {
+      // Nekandet är redan loggat på patienten i behörighetsmotorn. Svaret är detsamma som för en patient som inte finns.
+      if (e instanceof Fel && (e.status === 403 || e.status === 404)) throw new Fel(403, NEKAD, 'nekad');
+      throw e;
+    }
+    for (const e of svar.body.entry ?? []) ut.push(e.resource);
+  }
+  return ut;
+}
+
+export function enhetAv(db, resurs) {
   const tabell = TABELL[resurs.resourceType];
   const m = /^vt-(\d+)$/.exec(resurs.id);
   // Runda 11, r7: åtgärderna har id a-n, och härledda observationer (NEWS2) har inget eget id i matvarden.

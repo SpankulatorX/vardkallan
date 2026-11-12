@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+ Licensed to the Apache Software Foundation (ASF) under one
+ or more contributor license agreements. See the NOTICE file
+ distributed with this work for additional information
+ regarding copyright ownership. Sveriges Kommuner och Landsting licenses this file
+ to you under the Apache License, Version 2.0 (the
+ "License"); you may not use this file except in compliance
+ with the License. You may obtain a copy of the License at
+
+ http://www.apache.org/licenses/LICENSE-2.0
+
+ Unless required by applicable law or agreed to in writing,
+ software distributed under the License is distributed on an
+ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ KIND, either express or implied. See the License for the
+ specific language governing permissions and limitations
+ under the License.
+ -->
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema" xmlns:tns="urn:riv:clinicalprocess:healthcond:basic:GetObservationsResponder:1" xmlns:core="urn:riv:clinicalprocess:healthcond:basic:1" targetNamespace="urn:riv:clinicalprocess:healthcond:basic:GetObservationsResponder:1" elementFormDefault="qualified" attributeFormDefault="unqualified" version="1.2">
+	<xs:import namespace="urn:riv:clinicalprocess:healthcond:basic:1" schemaLocation="../../core_components/clinicalprocess_healthcond_basic_1.2.xsd"/>
+	<xs:element name="GetObservations" type="tns:GetObservationsType"/>
+	<xs:element name="GetObservationsResponse" type="tns:GetObservationsResponseType"/>
+	<xs:complexType name="GetObservationsType">
+		<xs:sequence>
+			<xs:element name="patientId" type="core:IIType"/>
+			<xs:element name="time" type="core:TimePeriodType" minOccurs="0"/>
+			<xs:element name="observationType" type="core:CVType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="observationId" type="core:IIType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:element name="careGiverId" type="core:IIType" minOccurs="0"/>
+			<xs:element name="careUnitId" type="core:IIType" minOccurs="0"/>
+			<xs:element name="interactionAgreementId" type="core:UUIDType" />
+			<xs:element name="sourceSystemHSAId" type="core:HSAIdType" minOccurs="0"/>
+			<xs:element name="relation" type="core:RelationFilterType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+	<xs:complexType name="GetObservationsResponseType">
+		<xs:sequence>
+			<xs:element name="observationGroup" type="core:ObservationGroupType" minOccurs="0" maxOccurs="unbounded"/>
+			<xs:any namespace="##other" processContents="lax" minOccurs="0" maxOccurs="unbounded"/>
+		</xs:sequence>
+	</xs:complexType>
+</xs:schema>

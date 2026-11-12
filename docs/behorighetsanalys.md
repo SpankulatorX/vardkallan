@@ -164,12 +164,12 @@ Handlingar i koden (33): `las_oversikt`, `las_journal`, `las_omvardnad`, `skriv_
 
 ## Systemkonto för en tillämpning (systemkonto)
 
-Behov: En tillämpning utan inloggad person hämtar avgränsade uppgifter genom det öppna API:t (SMART Backend Services).
+Behov: En tillämpning utan inloggad person hämtar avgränsade uppgifter genom det öppna API:t (SMART Backend Services). En organisation som är ansluten via tjänstekontrakt i RIVTA (NPÖ, Journalen och sammanhållen journalföring) läser journalanteckningar och åtgärder för de vårdenheter den är ansluten för.
 
-Risker: Att en tillämpning hämtar mer än den behöver, utan en person som ansvarar i stunden.
+Risker: Att en tillämpning hämtar mer än den behöver, utan en person som ansvarar i stunden. Att journalanteckningar lämnas ut till en organisation som inte ska ha dem.
 
-Så begränsas risken: Prövas mot kontots vårdenheter och informationsmängder, aldrig med vårdrelation, med pseudonymer som förval. Kan bara läsa.
+Så begränsas risken: Prövas mot kontots vårdenheter och informationsmängder, aldrig med vårdrelation, med pseudonymer som förval. Kan bara läsa. Journalanteckningar och åtgärder (las_journal) är informationsmängder som bara ett konto för en anslutning via tjänstekontrakt kan få, aldrig ett konto som registreras för det öppna API:t, och aldrig för patienter med skyddade personuppgifter eller spärrade uppgifter.
 
-Får inte: `las_journal`, `skriv_journal`, `ordinera`, `nodatkomst`.
+Får inte: `skriv_journal`, `ordinera`, `nodatkomst`.
 
-Handlingar i koden (5): `las_oversikt`, `las_diagnoser`, `las_matvarden`, `las_lakemedel`, `las_admin`.
+Handlingar i koden (6): `las_oversikt`, `las_diagnoser`, `las_matvarden`, `las_lakemedel`, `las_admin`, `las_journal`.

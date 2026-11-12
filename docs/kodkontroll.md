@@ -442,3 +442,26 @@ Tanners stadier registreras med Snomed CT 251811005 (bröst), 251805007 (genital
 NEMS följer Reis Miranda D, Moreno R, Iapichino G, Nine equivalents of nursing manpower use score (NEMS), Intensive Care Med 1997;23:760-5: nio poster med poängen 9, 6, 12, 3, 7, 12, 6, 5 och 6. Förslagen ur journalen, perspiratio, prognosen och rekommendationerna är demoregler.
 
 Läkemedlen för vasoaktiv infusion och sedering slogs upp i NPL:s totalfil 2026-11-10 (`research/r7-npl/RESULTAT.md`): Noradrenalin Abcur 1 mg/ml (20070331000011), Propofol-Lipuro 10 mg/ml (20000825000258), Midazolam Panpharma 5 mg/ml (20051112000024) och Furix 10 mg/ml (19801003000053), alla godkända. De är inlagda i katalogen som VK-NPL-0701 till 0704 med förpackningarna ur samma totalfil (högst fyra per produkt, inte avregistrerade och inte parallelldistribuerade), facit i `NPL` i `app/src/kodverk.js` och i `app/test/data/npl-forpackningar.json`, av `research/r7-npl/katalog-r7.py`. ATC-koderna C01CA03 norepinephrine, N01AX10 propofol och N05CD08 midazolam är kontrollerade mot WHO:s ATC/DDD-index 2026-11-10.
+
+## Runda 14, r2: tjänstekontrakten i RIVTA (2026-11-12)
+
+Schemana och WSDL-filerna för tjänstekontrakten är hämtade från https://bitbucket.org/rivta-domains vid en pinnad commit per domän och ligger under `app/rivta/<domän>/`. `KALLA.json` i varje domän anger källan, taggen, commit, arkivets sha256 och sha256 för varje fil, och `app/scripts/rivta-scheman.js --prova` kontrollerar att filerna inte har ändrats. Testet `RIVTA-grunden > schemana är pinnade med källa, version och sha256, och alla kontraktens scheman kan läsas` gör samma kontroll vid varje bygge.
+
+Licens: varje schemafil har ett huvud där Sveriges Kommuner och Landsting (nu Sveriges Kommuner och Regioner) licensierar filen under Apache License 2.0. Filerna är oförändrade och läses som data av valideringen. De omfattas inte av Vårdkällans licens EUPL 1.2. HL7 CDA-schemana som finns i två av domänerna är inte hämtade, eftersom inget av kontrakten här använder dem.
+
+| Domän | Tagg | Commit |
+| --- | --- | --- |
+| riv.clinicalprocess.healthcond.description | 2.1.19 | 9ad620ea8cdd |
+| riv.clinicalprocess.logistics.logistics | 2.0.7 | 42851358d799 |
+| riv.clinicalprocess.healthcond.basic | 1.2.3 | 55a953227545 |
+| riv.clinicalprocess.activity.actions | 1.3.6 | 02b15bdee612 |
+| riv.clinicalprocess.healthcond.actoutcome | 3.1.10 | 7c07a857587f |
+| riv.clinicalprocess.activityprescription.actoutcome | 2.2.2 | a0f633712d0b |
+| riv.itintegration.engagementindex | 1.0.10 | feef3879647a |
+| riv.ehr.blocking | ehr_blocking_3.2.2 | 558d8574eefc |
+| riv.ehr.patientconsent | ehr_patientconsent_1.0.1_RC1 | 70440f0fcd08 |
+| riv.infrastructure.directory.employee | 4.0.1 | 0f9fd6418f2b |
+| riv.population.residentmaster | population_residentmaster_1.2 | 9c8dd64e666f |
+| riv.ehr.accesscontrol | 1.0.6 | 4167090fb46b |
+
+Samtyckestjänstens domän (riv.ehr.patientconsent) har bara en tagg som är en kandidatversion (RC1). Den är den senaste som finns publicerad.

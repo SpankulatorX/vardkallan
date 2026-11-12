@@ -433,7 +433,7 @@ export function skapaOppetApi({ R, sessioner, valFor, kontrolleraOrigin, avvisaF
     rutt('GET', '/api/oppet-api/systemkonton', (c) => {
       const p = kravInloggad(c);
       if (!kanRoll(p, systemkonton.HANDLING)) throw new Fel(403, 'Bara systemförvaltaren ser systemkontona.', 'nekad');
-      return { konton: systemkonton.konton(c.db), mangder: Object.entries(systemkonton.MANGDER).map(([id, m]) => ({ id, namn: m.namn, typer: m.typer })),
+      return { konton: systemkonton.konton(c.db), mangder: Object.entries(systemkonton.MANGDER).filter(([, m]) => !m.tjanstekontrakt).map(([id, m]) => ({ id, namn: m.namn, typer: m.typer })),
         vardenheter: c.db.query("SELECT id, namn FROM enheter WHERE typ = 'vardenhet' ORDER BY namn").all() };
     });
     rutt('POST', '/api/oppet-api/systemkonton/forslag', (c) => {

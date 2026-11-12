@@ -1,0 +1,28 @@
+{
+  "domän": "riv.ehr.patientconsent",
+  "källa": "https://bitbucket.org/rivta-domains/riv.ehr.patientconsent",
+  "tagg": "ehr_patientconsent_1.0.1_RC1",
+  "commit": "70440f0fcd082825826b9bc9acd4f6144df07ba7",
+  "arkiv": "https://bitbucket.org/rivta-domains/riv.ehr.patientconsent/get/70440f0fcd082825826b9bc9acd4f6144df07ba7.tar.gz",
+  "arkivSha256": "2756ad9c72cf0d46671d64a0a2e7e586b36eef6cbcb24cedb974a80c6d56a3b8",
+  "licens": "Apache License 2.0 (huvudet i varje schemafil)",
+  "hämtat": "2026-11-12",
+  "filer": {
+    "schemas/core_components/ehr_patientconsent_1.0.xsd": "f3c409407ca1265fc53e4f18950f722232d3d76bed28d75d426dc2e2073fd324",
+    "schemas/core_components/itintegration_registry_1.0.xsd": "90fd91f30bef1160a74e601dbcea8a133da7e8a081c1d5f26b3d1f62efc03b4a",
+    "schemas/interactions/accesscontrol/CheckConsentInteraction/CheckConsentInteraction_1.0_RIVTABP21.wsdl": "2e872de7609c6fd8c7e1e84e6ec16a70a505d402c17d53b4fc25c033e8bd67a0",
+    "schemas/interactions/accesscontrol/CheckConsentInteraction/CheckConsentResponder_1.0.xsd": "ca253a0e12cb49fa13289107efd209f403d83dfad820f0321922dfe8cdddb966",
+    "schemas/interactions/administration/CancelExtendedConsentInteraction/CancelExtendedConsentInteraction_1.0_RIVTABP21.wsdl": "65651ab3b5c05b990c1f9aead9400593d4011fcb17234da023cf63b33be1e734",
+    "schemas/interactions/administration/CancelExtendedConsentInteraction/CancelExtendedConsentResponder_1.0.xsd": "e0993dc9e749bdb065b81b138a2f44dfeb56351000a89612ac34c75e03af3b2e",
+    "schemas/interactions/administration/DeleteExtendedConsentInteraction/DeleteExtendedConsentInteraction_1.0_RIVTABP21.wsdl": "2bb2732b1c29cfbd6c275f4f90dc669e4d1e6c12f19b3779112506c52aaf46eb",
+    "schemas/interactions/administration/DeleteExtendedConsentInteraction/DeleteExtendedConsentResponder_1.0.xsd": "660ed4a9377ae260584f49d84dd8f830216a20fb9310fc4ed62dae84f5decda4",
+    "schemas/interactions/administration/GetExtendedConsentsForPatientInteraction/GetExtendedConsentsForPatientInteraction_1.0_RIVTABP21.wsdl": "1df7390b39cc4b336227baacbb0e90f931b62214a198c904145ac82fc0b0aed9",
+    "schemas/interactions/administration/GetExtendedConsentsForPatientInteraction/GetExtendedConsentsForPatientResponder_1.0.xsd": "0934274a05bfcc97ba18b3c28c0a69fa738d09f1154fb4f31440598f5900af02",
+    "schemas/interactions/administration/RegisterExtendedConsentInteraction/RegisterExtendedConsentInteraction_1.0_RIVTABP21.wsdl": "8ea0a30ec73108bf48c657178195efc09e5aa8f8efc9d1a2cb7839926d37ffe0",
+    "schemas/interactions/administration/RegisterExtendedConsentInteraction/RegisterExtendedConsentResponder_1.0.xsd": "3d37db446efa11b4e2ab7c7e593104fd6d77fd2c9ace309a1d85a298a83209ad",
+    "schemas/interactions/querying/GetConsentsForCareProviderInteraction/GetConsentsForCareProviderInteraction_1.0_RIVTABP21.wsdl": "9abd48395db12e5ff4a05db1c6ed55b26b40c1e374504bd8e3d7a2994f8e3d67",
+    "schemas/interactions/querying/GetConsentsForCareProviderInteraction/GetConsentsForCareProviderResponder_1.0.xsd": "b0e2dd8ce21856e68798d12df448674c0bcdb3e4aa7c270c6e0427a6f4ee9455",
+    "schemas/interactions/querying/GetConsentsForPatientInteraction/GetConsentsForPatientInteraction_1.0_RIVTABP21.wsdl": "696db21dcdc19e1934304637bd3a2da110e5301a5884ac3fb7d389dae879d064",
+    "schemas/interactions/querying/GetConsentsForPatientInteraction/GetConsentsForPatientResponder_1.0.xsd": "6ef737e9a0c95bc41f06630a5db6f8d58d63a9fb42bcbd90167bc0467696ae1a"
+  }
+}

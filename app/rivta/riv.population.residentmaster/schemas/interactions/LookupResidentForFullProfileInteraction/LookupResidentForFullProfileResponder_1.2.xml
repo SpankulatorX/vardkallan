@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<tns:LookupResidentForFullProfile xmlns:tns="urn:riv:population:residentmaster:LookupResidentForFullProfileResponder:1" xmlns:tns1="urn:riv:population:residentmaster:1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:riv:population:residentmaster:LookupResidentForFullProfileResponder:1 LookupResidentForFullProfileResponder_1.2.xsd ">
+  <tns:personId>tns:personId</tns:personId>
+  <tns:lookUpSpecification>
+    <tns:Avregistreringsorsak>AV</tns:Avregistreringsorsak>
+    <tns:Sekretessmarkering>J</tns:Sekretessmarkering>
+    <tns:SenasteAndringFolkbokforing>20120101</tns:SenasteAndringFolkbokforing>
+  </tns:lookUpSpecification>
+</tns:LookupResidentForFullProfile>

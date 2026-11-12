@@ -110,10 +110,10 @@ export const ANALYS = {
   },
   systemkonto: {
     namn: "Systemkonto för en tillämpning",
-    behov: "En tillämpning utan inloggad person hämtar avgränsade uppgifter genom det öppna API:t (SMART Backend Services).",
-    risker: "Att en tillämpning hämtar mer än den behöver, utan en person som ansvarar i stunden.",
-    atgarder: "Prövas mot kontots vårdenheter och informationsmängder, aldrig med vårdrelation, med pseudonymer som förval. Kan bara läsa.",
-    inte: ["las_journal", "skriv_journal", "ordinera", "nodatkomst"],
+    behov: "En tillämpning utan inloggad person hämtar avgränsade uppgifter genom det öppna API:t (SMART Backend Services). En organisation som är ansluten via tjänstekontrakt i RIVTA (NPÖ, Journalen och sammanhållen journalföring) läser journalanteckningar och åtgärder för de vårdenheter den är ansluten för.",
+    risker: "Att en tillämpning hämtar mer än den behöver, utan en person som ansvarar i stunden. Att journalanteckningar lämnas ut till en organisation som inte ska ha dem.",
+    atgarder: "Prövas mot kontots vårdenheter och informationsmängder, aldrig med vårdrelation, med pseudonymer som förval. Kan bara läsa. Journalanteckningar och åtgärder (las_journal) är informationsmängder som bara ett konto för en anslutning via tjänstekontrakt kan få, aldrig ett konto som registreras för det öppna API:t, och aldrig för patienter med skyddade personuppgifter eller spärrade uppgifter.",
+    inte: ["skriv_journal", "ordinera", "nodatkomst"],
   },
 };
 
