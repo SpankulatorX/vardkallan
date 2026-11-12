@@ -105,7 +105,9 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, medMi
   // De nationella tjänstekontrakten (K10) och den simulerade producenten.
   rutt('GET', '/api/tjanstekontrakt', (c) => {
     kravInloggad(c);
-    return { kontrakt: tk.KONTRAKT, tjanster: tk.TJANSTER, symboler: tk.SYMBOLER, status: tk.STATUS, k10Rader: tk.K10_RADER, producenter: tk.PRODUCENTER };
+    return { kontrakt: tk.KONTRAKT, tjanster: tk.TJANSTER, symboler: tk.SYMBOLER, status: tk.STATUS, k10Rader: tk.K10_RADER, producenter: tk.PRODUCENTER,
+      // Runda 14, r2: kontrakten som är byggda i RIVTA.
+      rivtaStatus: tk.RIVTA_STATUS };
   });
   rutt('POST', '/api/riv/:kontrakt', (c, kontrakt) => { kravInloggad(c); return tk.anropa({ ...c, valFor: (pid) => valFor(c.s, pid) }, kontrakt, c.body); });
   // Runda 14, r2: HSA-katalogen, PU-tjänsten och engagemangsindex med tjänstekontrakten i RIVTA (simulerade i demon).

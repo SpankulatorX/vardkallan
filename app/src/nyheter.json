@@ -2,6 +2,43 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.4.0",
+      "datum": "2026-11-13",
+      "nyheter": [
+        {
+          "id": "r14-r2-sammanhallen-rivta",
+          "roller": [
+            "lakare",
+            "sjukskoterska"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Uppgifter från andra vårdgivare kontrolleras mot spärrtjänsten",
+          "text": "Uppgifter från andra vårdgivare hämtas nu med de nationella tjänstekontrakten och kontrolleras mot spärrtjänsten innan de visas. Om tjänsterna inte svarar visas inget, och systemet säger varför. Om patienten samtycker kan en spärr hos en annan vårdgivare hävas för dig till dagens slut. Tjänsterna är simulerade i demon."
+        },
+        {
+          "id": "r14-r2-folkbokforing",
+          "roller": [
+            "vardadministrator"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Jämförelse med folkbokföringen och spärrtjänsten",
+          "text": "Systemet kan jämföra patientens namn och adress med folkbokföringen i PU-tjänsten och säga vad som skiljer sig, och jämföra Vårdkällans spärrar med spärrtjänsten. För en patient med skyddade personuppgifter jämförs aldrig adressen. Tjänsterna är simulerade i demon."
+        },
+        {
+          "id": "r14-r2-tjanstekontrakt",
+          "roller": [
+            "systemforvaltare"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Tjänstekontrakten byggda mot RIVTA",
+          "text": "Vårdkällan svarar nu på tjänstekontrakten för journalen, NPÖ och Tillgänglig patient med SOAP enligt RIVTA Basic Profile 2.1, och anropar HSA, PU-tjänsten, spärrtjänsten, samtyckestjänsten och engagemangsindex som konsument. Tabellen på sidan Öppet API visar vad som är byggt och testat. Inget är anslutet till den nationella tjänsteplattformen."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

@@ -17,6 +17,38 @@ Koden ligger i `app/src/rivta/` och används av alla kontrakt.
 - **Anropsbehörighet och behörighet till uppgifterna** (`konsumenter.js`). En ansluten organisation har ett HSA-id, en lista med kontrakt som den får anropa (som anropsbehörigheterna i tjänsteplattformens adressering) och ett systemkonto. Producenterna läser genom FHIR-API:t med kontot, så att behörighetsmotorn prövar varje uppgift: bara kontots vårdenheter och informationsmängder, aldrig patienter med skyddade personuppgifter, aldrig spärrade uppgifter och aldrig det som systemförvaltningen har undantagit från nationella tjänster. Demon har tre simulerade konsumenter med påhittade HSA-id: NPÖ (SE0000000000-SIMNPO), Journalen (SE0000000000-SIMJOURNALEN) och en aggregerande tjänst för sammanhållen journalföring (SE0000000000-SIMSJF).
 - **Loggning.** Varje anrop in och ut sparas i `rivta_anrop` med kontraktet, riktningen, den andra organisationen, den logiska adressen och resultatet, utan patientuppgifter. Varje läsning av patientuppgifter loggas dessutom på patienten i åtkomstloggen, med kontraktet och den anropande organisationen i loggens resurs.
 
+## Kontrakten som är byggda
+
+| Kontrakt | Version | Domän | Vårdkällans roll | Testat |
+| --- | --- | --- | --- | --- |
+| GetCareDocumentation | 2.1 | riv.clinicalprocess.healthcond.description | producent och konsument | i processen och genom den lokala tjänsteplattformen |
+| GetDiagnosis | 2.0 | riv.clinicalprocess.healthcond.description | producent och konsument | i processen och genom den lokala tjänsteplattformen |
+| GetAlertInformation | 2.0 | riv.clinicalprocess.healthcond.description | producent | i processen och genom den lokala tjänsteplattformen |
+| GetCareContacts | 2.0 | riv.clinicalprocess.logistics.logistics | producent och konsument | i processen och genom den lokala tjänsteplattformen |
+| GetMedicationHistory | 2.2 | riv.clinicalprocess.activityprescription.actoutcome | konsument | i processen |
+| AssertCareEngagement | 1.0 | riv.ehr.accesscontrol | producent | i processen och genom den lokala tjänsteplattformen |
+| CheckBlocks | 3.0 | riv.ehr.blocking | konsument | i processen |
+| GetAllBlocksForPatient, GetBlocksForPatient | 2.0 | riv.ehr.blocking | konsument | i processen och genom den lokala tjänsteplattformen |
+| RegisterTemporaryExtendedRevoke, CancelTemporaryExtendedRevoke | 2.0 | riv.ehr.blocking | konsument | i processen |
+| CheckConsent, RegisterExtendedConsent, CancelExtendedConsent | 1.0 | riv.ehr.patientconsent | konsument | i processen och genom den lokala tjänsteplattformen |
+| GetEmployeeIncludingProtectedPerson | 4.0 | riv.infrastructure.directory.employee | konsument | i processen och genom den lokala tjänsteplattformen |
+| LookupResidentForFullProfile | 1.2 | riv.population.residentmaster | konsument | i processen och genom den lokala tjänsteplattformen |
+| Update | 1.0 | riv.itintegration.engagementindex | konsument | i processen |
+
+Status för alla: byggt och validerat mot tjänstekontraktet, testat lokalt, inte anslutet till den nationella tjänsteplattformen (kräver avtal med Inera och SITHS-funktionscertifikat). Där Vårdkällan är konsument är den andra parten simulerad (`app/src/rivta/nationella.js` och `register.js`), med påhittade HSA-id och demons påhittade uppgifter. De simulerade tjänsterna har en egen kopia av spärrar, samtycken, personalkatalogen och folkbokföringen i sandlådan, tagen första gången de används, så att skillnader mellan Vårdkällan och tjänsten syns.
+
+K10 anger PU-tjänsten som LookupResidentsForProfile i masterdata:citizen:citizen. Den domänen finns inte bland de öppna domänerna på bitbucket.org/rivta-domains, så PU-tjänstens LookupResidentForFullProfile i riv.population.residentmaster är byggd i stället.
+
+## Testa genom tjänsteplattformen
+
+Testet `app/test/rivta-plattform.test.js` kör ett anrop från början till slut: konsumenten anropar en lokal tjänsteplattform med ömsesidig TLS, plattformen prövar anropsbehörigheten och vägvalet i en lokal TAK-tabell och skickar anropet vidare till producenten med sitt eget certifikat och den ursprungliga konsumenten i huvudet `x-rivta-original-serviceconsumer-hsaid`. Alla certifikat skapas av en test-CA när testet körs. Kör det med:
+
+```
+docker run --rm --memory=2g -v "$PWD:/w" -w /w/app oven/bun:1.3.14-alpine bun test test/rivta-plattform.test.js
+```
+
+Den lokala tjänsteplattformen (`app/src/rivta/plattform.js`) gör det som tjänsteplattformens virtualiseringstjänst gör med ett anrop (anropsbehörighet, vägval, felkoderna VP004 och VP007 och huvudet med den ursprungliga konsumenten), men den är inte Ineras tjänsteplattform. Ineras VP och TAK (github.com/skltp, LGPL-3.0) kördes inte: den nuvarande VP bygger på Camel och Spring Boot och beror på skltp:s egna bibliotek (till exempel takcache och hsa-cache) som inte finns på Maven Central och måste byggas från källkod ett i taget, och TAK behöver en egen databas och tjänst. VP och TAK behöver då köras samtidigt i var sin container. Att bygga dem och köra dem samtidigt ryms inte inom det minne som testdatorn har för hjälptjänster, högst 1 GB per container och en container åt gången. Testerna går därför mot den lokala plattformen och mockar som följer profilen.
+
 ## Schemana
 
 Schemana ligger under `app/rivta/<domän>/` med `KALLA.json` (källa, tagg, commit och sha256 per fil). Licensen och versionerna står i `docs/kodkontroll.md`. Hämta om eller kontrollera dem med:
