@@ -19,6 +19,8 @@ import * as lakemedel from './lakemedel.js';
 import { ICD10SE, MATKOD } from './kodverk.js';
 // Runda 10, r4: skannade restjournaler.
 import * as restjournal from './restjournal.js';
+// Runda 14, r4: handlingar i mellanarkivet.
+import * as mellanarkiv from './mellanarkiv.js';
 
 const MAX_TRAFFAR = 100;
 const sv = (s) => String(s ?? '').toLocaleLowerCase('sv-SE');
@@ -196,6 +198,8 @@ export function sok(atk, fraga, filterInp = {}) {
 
   // Runda 10, r4: texten i skannade restjournaler (restjournal.js), med samma behörighet som listan.
   if (kanRoll(atk.personal, restjournal.LAS)) traffar.push(...restjournal.sokTraffar(atk, [...new Set([...ordAnt, t.ord].filter(o => o.length >= 2))], markera));
+  // Runda 14, r4: texten i handlingar i mellanarkivet (mellanarkiv.js), med samma behörighet som journalen.
+  traffar.push(...mellanarkiv.sokTraffar(atk, [...new Set([...ordAnt, t.ord].filter(o => o.length >= 2))], markera));
 
   traffar.sort((x, y) => String(y.tid).localeCompare(String(x.tid)));
   // Runda 10, r2: varje träff får sin vårdenhet, och filtren räknas på alla synliga träffar, så att användaren ser vad

@@ -33,12 +33,19 @@ const filter = { enhet: '', typ: '' };
 const kanSkriva = (kategori) => far(kategori === 'omvardnad' ? 'skriv_omvardnad' : 'skriv_journal');
 
 export async function visa(el, ctx) {
-  const [lista] = await Promise.all([
+  const [lista, , ur] = await Promise.all([
     api(`/api/patient/${encodeURIComponent(ctx.id)}/anteckningar`),
     mallar && mallarFor === S.session?.personal?.id ? Promise.resolve() : api('/api/mallar').then(m => { mallar = m; mallarFor = S.session?.personal?.id; }),
+    // Runda 14, r4 (Sussa 5.4.2.2): anteckningarna i mellanarkivet. Läsläget och en roll som inte läser journalen får inget.
+    api(`/api/patient/${encodeURIComponent(ctx.id)}/mellanarkiv`).catch(() => null),
   ]);
   if (!ctx.aktuell()) return;
-  const ant = lista.anteckningar;
+  // Runda 14, r4: anteckningarna i mellanarkivet står i listan bland de andra, märkta Ur mellanarkivet, så att ingen
+  // behöver veta var de finns. De öppnas i samma läsruta och ändras aldrig.
+  const ant = [...lista.anteckningar, ...(ur?.handlingar ?? []).filter(h => h.slag === 'anteckning').map(h => ({
+    id: `ma-${h.id}`, typ: h.typ, enhet: h.enhet, skapad: h.datum, signerad: { tid: h.datum }, forfattare: h.forfattare, kallaEtikett: h.kallaEtikett, status: 'mellanarkiv',
+  }))];
+  const dolda = ur ? { ...lista.dolda, kraverVal: (lista.dolda?.kraverVal ?? 0) + (ur.dolda?.kraverVal ?? 0), sparrade: Boolean(lista.dolda?.sparrade || ur.dolda?.sparrade) } : lista.dolda;
   const enheter = [...new Map(ant.map(a => [a.enhet.id, a.enhet.namn]))];
   const typer = [...new Set(ant.map(a => a.typ))];
   if (filter.enhet && !enheter.some(([id]) => id === filter.enhet)) filter.enhet = '';
@@ -48,7 +55,7 @@ export async function visa(el, ctx) {
   // I läsläget vid avbrott kommer listan från läskopian, som bara har de senaste anteckningarna.
   const urKopia = lista.totalt > lista.iLaskopian
     ? `<p class="ruta ruta-info liten">Läskopian har de ${lista.iLaskopian} senaste av patientens ${lista.totalt} anteckningar som du kan se.</p>` : '';
-  el.innerHTML = `<h2 class="sr">Journal</h2>${egnaMallar.length ? hjalpRuta('daganteckning') : ''}${urKopia}${doldaRad(lista.dolda)}
+  el.innerHTML = `<h2 class="sr">Journal</h2>${egnaMallar.length ? hjalpRuta('daganteckning') : ''}${urKopia}${doldaRad(dolda)}
     <div class="journal-delad">
       <div class="journal-lista">
         <div class="journal-verktyg">
@@ -84,7 +91,34 @@ export async function visa(el, ctx) {
   if (ctx.sub === 'epikris') return nyEpikris(las, ctx, egnaMallar);
   const id = ctx.sub ?? ant.find(a => a.status === 'signerad')?.id ?? ant[0]?.id;
   if (!id) { las.innerHTML = '<p class="tom">Det finns inga anteckningar än.</p>'; return; }
+  // Runda 14, r4.
+  if (String(id).startsWith('ma-')) return lasMellanarkiv(las, ctx, String(id).slice(3));
   await lasAnteckning(las, ctx, id);
+}
+
+// Runda 14, r4 (Sussa 5.4.2.2): en handling ur mellanarkivet läses i journalen som en anteckning, med samma behörighet,
+// och läsningen loggas. Den ändras aldrig, och systemet säger själv om innehållet är detsamma som när det togs emot.
+async function lasMellanarkiv(las, ctx, id) {
+  let h;
+  try { h = await api(`/api/mellanarkiv/${encodeURIComponent(id)}`); } catch (e) {
+    if (e instanceof ApiFel && (e.status === 403 || e.status === 404)) { las.innerHTML = e.status === 404 ? '<p class="tom">Uppgiften finns inte.</p>' : kravRuta(e); return; }
+    throw e;
+  }
+  if (!ctx.aktuell()) return;
+  const m = h.mellanarkiv;
+  las.innerHTML = `<article class="anteckning" aria-labelledby="ant-rubrik" data-mellanarkiv>
+      <header class="ant-huvud">
+        <h2 id="ant-rubrik" tabindex="-1">${esc(h.typ)}</h2>
+        <p class="ant-meta">${esc(h.enhet.namn)}</p>
+        <dl class="ant-fakta">
+          ${h.forfattare ? `<div><dt>Skriven av</dt><dd>${esc(h.forfattare.namn)}</dd></div>` : ''}
+          <div><dt>${h.slag === 'matvarde' ? 'Mätt' : 'Signerad'}</dt><dd>${esc(tidpunkt(h.datum))}</dd></div>
+        </dl>
+        ${migreradEtikett(h)}
+      </header>
+      ${h.slag === 'matvarde' ? `<dl class="sokord"><div><dt>Värde</dt><dd>${esc(h.varde)}</dd></div></dl>` : sokordHtml(h.sokord)}
+      <p class="under-text" data-mellanarkiv-kontroll>Fördes till mellanarkivet ${esc(datum(m.mottaget))} (${esc(m.kalla ?? '')}) och ändras inte där. ${m.oforandrad ? 'Kontrollsumman visar att innehållet är detsamma som när det togs emot.' : 'Kontrollsumman stämmer inte med det som togs emot. Kontakta systemförvaltningen.'}</p>
+    </article>`;
 }
 
 async function lasAnteckning(las, ctx, id) {

@@ -337,7 +337,9 @@ function pumparHtml(d) {
 }
 
 export async function visa(main) {
-  main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + hjalpRuta('ge-dos') + '<div id="adm"><p class="tom">Hämtar.</p></div>';
+  main.innerHTML = vyRubrik('Läkemedel att ge', 'Dagens doser för de inneliggande patienterna, framräknade ur ordinationerna.') + hjalpRuta('ge-dos') + '<div id="adm"><p class="tom">Hämtar.</p></div>'
+    // Runda 14, r4 (Sussa 11.2.1.8): den andra källan vid avbrott, en dator på vårdenheten som håller listan aktuell.
+    + '<p class="liten dampad" data-reservdator-lank><a href="#/reservdator">Reservdator för läkemedel</a>: öppna den på en dator på vårdenheten, så finns ordinationerna och dagens doser kvar om kärnsystemet inte svarar.</p>';
   const el = main.querySelector('#adm');
   const d = await api('/api/administreringar');
   // Runda 8, r4: har användaren gått vidare, eller har listan ritats om medan den hämtades (två doser givna tätt efter

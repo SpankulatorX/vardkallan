@@ -268,6 +268,20 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await gaTill(page, '#/drift'); await forvanta(page, 'main h1', 'Svarstider');
       await gaTill(page, '#/arbetslista'); await page.waitForSelector('.roll');
     });
+    // Runda 14, r4 (Sussa 11.2.1.7): testprotokollet nås från kravsidan utan inloggning och säger att inget
+    // acceptanstest är gjort.
+    await s('testprotokollet med spårbarhet till kraven går att läsa och skriva ut utan inloggning', async () => {
+      await gaTill(page, '#/krav');
+      await page.click('.kr-testprotokoll a');
+      await vantaVy(page);
+      await forvanta(page, 'main h1', 'Testprotokoll');
+      await forvanta(page, '#tp-acceptanstest', 'Inget acceptanstest med en beställare är gjort');
+      await forvanta(page, '#tp-version', 'Version');
+      await forvanta(page, '#tp-sussa .tp-krav', '11.2.1.7');
+      await forvanta(page, '#tp-egna .tp-krav', 'K1');
+      await forvanta(page, '#tp-skriv-ut', 'Skriv ut protokollet');
+      await gaTill(page, '#/arbetslista'); await page.waitForSelector('.roll');
+    });
     await s('tangentbord: första tabbstoppet är länken till innehållet', async () => {
       await page.goto(`${BAS}/`); await page.waitForSelector('.roll');
       await page.keyboard.press('Tab');

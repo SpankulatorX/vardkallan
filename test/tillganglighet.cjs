@@ -434,6 +434,8 @@ const flikarFor = async (page) => page.locator('main nav.flikar a').evaluateAll(
   const OFFENTLIGA = ['#/', '#/krav', '#/moduler', '#/drift', '#/tillganglighet'];
   // Runda 13, r1: startsidan för testare, sidan om demon och testledarens vy.
   OFFENTLIGA.push('#/testa', '#/om', '#/testledare');
+  // Runda 14, r4: testprotokollet inför acceptanstest (Sussa 11.2.1.7).
+  OFFENTLIGA.push('#/testprotokoll');
   const JOURNAL_ROLLER = ['lak-kard', 'ssk-kard', 'usk-kard', 'adm-kard', 'far-kard'];
   const vyLista = []; // [roll, hash]
 

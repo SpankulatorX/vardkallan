@@ -10,6 +10,8 @@ import * as utskrift from './utskrift.js';
 import * as ks from './kontrasignering.js';
 import * as arkiv from './arkiv.js';
 import * as datauttag from './datauttag.js';
+// Runda 14, r4 (Sussa 5.4.2.2): överföring till mellanarkivet.
+import * as mellanarkiv from './mellanarkiv.js';
 
 export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, version }) {
   // En roll utan behörighet nekas, och försöket loggas som nekat, också när det inte gäller en patient.
@@ -93,7 +95,14 @@ export function registreraRutter({ rutt, kravInloggad, medPatient, valFor, versi
   rutt('GET', '/api/arkiv/patient', (c) => { const p = kravRoll(c, 'registrera_arkivbeslut'); return arkiv.hittaPatient(c.db, p, c.url.searchParams.get('q')); });
   rutt('GET', '/api/arkiv/patient/:id/poster', (c, id) => { const p = kravRoll(c, 'registrera_arkivbeslut', id); return arkiv.poster(c.db, p, id); });
   rutt('POST', '/api/arkiv/beslut', (c) => { const p = kravRoll(c, 'registrera_arkivbeslut'); return [201, arkiv.registreraBeslut(c.db, p, c.body)]; });
-  rutt('GET', '/api/arkiv/beslut/:id/underlag', (c, id) => { const p = kravRoll(c, 'registrera_arkivbeslut'); return arkiv.underlag(c.db, p, arkiv.hamtaBeslut(c.db, id)); });
+  rutt('GET', '/api/arkiv/beslut/:id/underlag', (c, id) => {
+    const p = kravRoll(c, 'registrera_arkivbeslut');
+    const b = arkiv.hamtaBeslut(c.db, id);
+    // Runda 14, r4: underlaget för en överföring till mellanarkivet räknas fram i mellanarkiv.js.
+    return arkiv.logiskTyp(b) === 'mellanarkiv' ? mellanarkiv.underlag(c.db, p, b) : arkiv.underlag(c.db, p, b);
+  });
+  // Runda 14, r4 (Sussa 5.4.2.2): överföringen till mellanarkivet, en gång per beslut.
+  rutt('POST', '/api/arkiv/beslut/:id/overfor', (c, id) => { const p = kravRoll(c, 'arkivera'); return mellanarkiv.overfor(c.db, p, arkiv.hamtaBeslut(c.db, id), { version }); });
   rutt('POST', '/api/arkiv/beslut/:id/paket', (c, id) => {
     const p = kravRoll(c, 'arkivera');
     const r = arkiv.exportera(c.db, p, arkiv.hamtaBeslut(c.db, id), { version });
