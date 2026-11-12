@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-11T18:27:48.703Z",
-  "bas": "http://127.0.0.1:18230",
+  "tid": "2026-11-12T07:58:04.118Z",
+  "bas": "http://127.0.0.1:18241",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "0e2b481b58b5f253d243d05a731d03623fbaa5711bdb95fbf47b117dbfa836c4",
+  "gransnittHash": "8aecc7d98efe3d996c13a232bcb7fdee5f35bc4400c0afbc2ccbd670d1436c71",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -2084,6 +2084,43 @@
         "klick: morgonens tabletter",
         "klick: Skicka till mottagningen"
       ]
+    },
+    {
+      "id": "lamna-synpunkt",
+      "namn": "Lämna en synpunkt",
+      "roll": "lak-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 4,
+      "motivering": "Ett klick på Lämna synpunkt, som syns på varje sida. Textfältet har fokus direkt, så testaren skriver utan fältbyte. Ett klick för vad det gäller, ett för hur allvarligt det är och ett på Skicka. Sidan, demorollen, uppdraget, versionen, skärmbredden, webbläsaren och tiden fyller systemet i själv, och yrke och journalsystem kommer från startsidan om testaren har fyllt i dem där.",
+      "klick": 4,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "klick: Lämna synpunkt",
+        "har redan fokus: synpunkten",
+        "klick: Svårt eller krångligt",
+        "klick: En detalj eller ett förslag",
+        "klick: Skicka synpunkten"
+      ]
+    },
+    {
+      "id": "valj-yrkesroll",
+      "namn": "Välja yrkesroll och starta första uppdraget",
+      "roll": "lak-kard",
+      "start": "Startsidan för testare",
+      "budget": 2,
+      "motivering": "Ett klick på yrkesrollen, som loggar in i rätt demoroll och startar uppdragen i panelen, och ett klick på en patient i arbetslistan för det första uppdraget. Systemet bockar av uppdraget själv och ställer jämförelsefrågan.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Läkare på sjukhus",
+        "klick: en patient i arbetslistan"
+      ]
     }
   ],
   "tester": [
@@ -2545,6 +2582,14 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Rapportera dagens tabletter i Min journal inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Lämna en synpunkt inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget",
       "status": "grön"
     }
   ]
