@@ -1755,13 +1755,14 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await forvanta(page, '.notis', 'väntar på att en annan systemförvaltare godkänner det');
       await page.waitForLoadState('networkidle');
     });
-    // Runda 12, r1: en enskild anteckning väljs med sitt nummer, och systemet säger när numret inte finns.
-    await s('Tomas Lindh väljer en enskild anteckning att undanta, och systemet förklarar ett nummer som inte finns', async () => {
+    // Runda 12, r1: en enskild anteckning väljs med sitt nummer. Runda 13, r3 (A3, säkerhetsfynd 5 och 6): en enskild
+    // anteckning undantas bara efter en begäran från vården, så systemförvaltaren kan inte välja en själv.
+    await s('Tomas Lindh kan inte själv välja en enskild anteckning att undanta, bara efter en begäran från vården', async () => {
       await gaTill(page, '#/undantag');
       await page.click('[data-nytt-undantag]');
-      await page.locator('dialog[open] #sf-u-omfang').selectOption('anteckning');
-      await page.locator('dialog[open] #sf-u-nummer').fill('999999');
-      await forvanta(page, 'dialog[open] [data-forhand]', 'Det finns ingen signerad anteckning med det numret');
+      await page.locator('dialog[open] #sf-u-omfang').waitFor();
+      const alternativ = await page.locator('dialog[open] #sf-u-omfang option').evaluateAll(o => o.map(x => x.value));
+      if (alternativ.includes('anteckning')) throw new Error(`en enskild anteckning går att välja utan begäran: ${alternativ}`);
       await page.click('dialog[open] [data-varde="avbryt"]');
       await page.waitForLoadState('networkidle');
     });

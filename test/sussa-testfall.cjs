@@ -137,7 +137,16 @@ function floden(D) {
       await m.ersatt(page.locator('#ordform input[name="trDagar"]'), '6', 'dagar per steg');
       await m.skriv(page.locator('#ordform input[name="ordinationsorsak"]'), 'Nedstämdhet', 'ordinationsorsak');
       await m.klicka(page.locator('#ordform [data-upp="14"]'), 'uppföljning om två veckor');
-      await sparaOrdination(m, page, 'Sertralin Teva är ordinerat');
+      // Runda 13, r3 (E1-11, E1-21): Gerda har Waran, så Sertralin ger en allvarlig varning för blödning (demoregel) som
+      // läkaren motiverar i samma formulär innan ordinationen sparas.
+      await m.klicka(page.locator('#ordform [data-spara]'), 'Kontrollera och spara');
+      const mot = page.locator('#ordform textarea[data-motivering]').first();
+      await mot.waitFor();
+      await m.skriv(mot, 'Följer blodbilden och tecken på blödning, magskydd övervägs.', 'motiveringen');
+      await m.klicka(page.locator('#ordform [data-spara]'), 'Spara ordinationen');
+      await synlig(page, '.notis', 'Sertralin Teva är ordinerat');
+      await page.waitForLoadState('networkidle');
+      await page.waitForSelector('.lm-tabell');
       // Ny dos av Metformin i den pågående ordinationen: styrkan 850 mg, där systemet fyller i doseringen och dosen.
       await m.klicka(page.locator('.lm-tabell tr', { hasText: 'Metformin Sandoz' }).locator('[data-dosandring]'), 'Ändra dos för Metformin');
       await m.klicka(page.locator('dialog[open] [data-styrka]', { hasText: '850 mg' }), 'styrkan 850 mg');

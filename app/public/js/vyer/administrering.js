@@ -32,7 +32,10 @@ const omfattas = (x) => x.delegering?.omfattas !== false;
 const inteDelegerad = (x) => (omfattas(x) ? '' : `<span class="under-text adm-varfor">${esc(x.delegering.varfor)}</span>`);
 
 // Doserna för en patient, som HTML. kan: får användaren ge läkemedel till patienten.
-export function patientDoser(pid, l) {
+// Runda 13, r3 (E2-5): patientens namn och personnummer för frågan om identiteten, per patient som visas.
+const patientText = new Map();
+export function patientDoser(pid, l, patient = null) {
+  if (patient?.namn) patientText.set(pid, [patient.namn, patient.personnummer].filter(Boolean).join(', '));
   const kan = l.kan?.kan;
   const rad = (d) => {
     const [st, kl] = STATUS[d.status] ?? [d.status, ''];
@@ -146,9 +149,11 @@ function identitetRader() {
   return identitetMinne.rader;
 }
 const nyligenBekraftad = (pid) => { const t = identitetRader().get(identitetNyckel(pid)); return Boolean(t && Date.now() - t < RUNDA_MS); };
-async function fragaIdentitet(namnText) {
-  const svar = await dialog(`<form><h2 id="dlg-rubrik">Patientens identitet: ${esc(namnText)}</h2>
-    <p>Armbandet är inte skannat. Hur har du kontrollerat att det är rätt patient?</p>
+async function fragaIdentitet(pid, namnText) {
+  // Formuläret fungerar också under ett avbrott (data-ko-ok), eftersom en dos då läggs i skrivkön.
+  const vem = patientText.get(pid);
+  const svar = await dialog(`<form data-ko-ok><h2 id="dlg-rubrik">Patientens identitet${vem ? `: ${esc(vem)}` : ''}</h2>
+    <p>${esc(namnText)} ges och armbandet är inte skannat. Hur har du kontrollerat att det är rätt patient?</p>
     <fieldset class="kryssgrupp" id="adm-id"><legend>Identiteten kontrollerades med</legend>${IDENTITET_SATT.map(([k, t], i) => `<div class="kryssfalt"><input type="radio" id="adm-id-${k}" name="satt" value="${k}"${i === 0 ? ' checked' : ''}><label for="adm-id-${k}">${esc(t)}</label></div>`).join('')}</fieldset>
     <div class="falt"><label for="adm-id-text">Hur, om annat sätt</label><input id="adm-id-text" name="text" maxlength="200" autocomplete="off"></div>
     <p class="dialog-fel form-fel" role="alert" hidden></p>
@@ -162,7 +167,7 @@ async function fragaIdentitet(namnText) {
 async function registrera(pid, data, namnText) {
   const utanSkanning = data.atgard === 'ge' && !data.armband;
   if (utanSkanning && !data.identitet && !nyligenBekraftad(pid)) {
-    const id = await fragaIdentitet(namnText);
+    const id = await fragaIdentitet(pid, namnText);
     if (!id) return null;
     data = { ...data, identitet: id };
   }
@@ -173,7 +178,7 @@ async function registrera(pid, data, namnText) {
     return r;
   } catch (e) {
     if (!(tyst && e?.kod === 'identitet')) { if (tyst) felNotis(e); throw e; }
-    const id = await fragaIdentitet(namnText);
+    const id = await fragaIdentitet(pid, namnText);
     if (!id) return null;
     const r = await skicka(pid, { ...data, identitet: id }, namnText);
     if (r) identitetRader().set(identitetNyckel(pid), Date.now());
@@ -330,7 +335,7 @@ export async function visa(main) {
   el.innerHTML = `${deleg}${pumparHtml(pump)}<p class="ingress liten">${esc(d.vardenhet?.namn ?? '')}: ${d.sammanfattning.attGe} ${d.sammanfattning.attGe === 1 ? 'dos' : 'doser'} att ge nu${d.sammanfattning.forsenade ? `, ${d.sammanfattning.forsenade} försenade` : ''}. Varningarna är demoregler, inte kliniskt beslutsstöd.</p>
     ${d.patienter.map(p => `<section class="adm-patient" aria-labelledby="adm-${esc(p.patient.id)}">
       <h2 id="adm-${esc(p.patient.id)}">${patientCell(p.patient, `#/patient/${encodeURIComponent(p.patient.id)}/lakemedel`)} <span class="dampad liten">${esc(p.plats ?? '')}</span></h2>
-      ${patientDoser(p.patient.id, p)}
+      ${patientDoser(p.patient.id, p, p.patient)}
     </section>`).join('')}`;
   koppla(el, () => visa(main));
   skannaArmband(el);

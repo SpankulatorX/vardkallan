@@ -378,7 +378,9 @@ async function koa(p, data) {
     const doser = kopia.patienter[pid].administreringar?.doser ?? [];
     const d = data.planerad ? doser.find(x => x.ordinationId === data.ordinationId && x.planerad === data.planerad) : null;
     if (d && ['given', 'overlamnad'].includes(d.status)) throw ej(`Dosen är redan registrerad som ${d.status === 'given' ? 'given' : 'överlämnad'}${d.administrering?.ejSparad ? ' i kön på den här datorn' : ''}. Ges den igen får patienten dubbel dos.`, 'ogiltig');
-    innehall = { ordinationId: data.ordinationId, ...(data.planerad ? { planerad: data.planerad } : {}), ...(data.kontrollkod ? { kontrollkod: data.kontrollkod } : {}), ...(data.dos != null ? { dos: data.dos } : {}) };
+    innehall = { ordinationId: data.ordinationId, ...(data.planerad ? { planerad: data.planerad } : {}), ...(data.kontrollkod ? { kontrollkod: data.kontrollkod } : {}), ...(data.dos != null ? { dos: data.dos } : {}),
+      // Runda 13, r3 (E2-5): skannat armband eller uppgiften om hur identiteten kontrollerades följer med dosen i kön.
+      ...(data.armband ? { armband: data.armband } : {}), ...(data.identitet ? { identitet: data.identitet } : {}) };
   }
   const rad = { id: crypto.randomUUID(), typ: k.typ, patientId: pid, gjord, data: innehall };
   const i = info;
