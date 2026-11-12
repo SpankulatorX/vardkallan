@@ -17,7 +17,7 @@ export const ANDRINGAR = [
     text: 'Inga nya resurstyper eller skrivningar i FHIR.',
     resurser: [], skrivning: [], annat: [
       // Runda 14, r5: servicenivåerna, incidentregistret och incidentrapporten till beställaren.
-      'Incidentregistret, månadsrapporten för servicenivåerna och incidentrapporten till beställaren i det interna API:t för systemförvaltaren (/api/servicenivaer, docs/api-avvikelser.md)',
+      'Incidentregistret, månadsrapporten för servicenivåerna och incidentrapporten till beställaren i det interna API:t för systemförvaltaren (docs/api-avvikelser.md)',
     ],
   },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.

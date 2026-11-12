@@ -2622,7 +2622,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Uppgraderingar') + 1
         // Runda 11, r7: vårdtyngden enligt NEMS och import av tillväxtdata.
         'iva-nems', 'tillvaxt-import',
         // Runda 13, r1: synpunkten och det första uppdraget i testinbjudan.
-        'lamna-synpunkt', 'valj-yrkesroll']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
+        'lamna-synpunkt', 'valj-yrkesroll',
+        // Runda 14, r5: incidenten på sidan Servicenivåer och incidenter.
+        'registrera-incident']) await page.uncheck(`input[name="uppgift"][value="${id}"]`);
       await page.click('#at-start [type="submit"]');
       await forvanta(page, '#testlage', 'Uppgift 1 av 2');
       await forvanta(page, '#testlage-text', 'blodtryck till 128/82');

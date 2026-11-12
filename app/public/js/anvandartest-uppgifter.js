@@ -31,6 +31,8 @@ export const STARTPUNKT = {
   // Runda 7, r4: systemförvaltarens sidor.
   'Omorganisationen efter återställning': { hash: '#/omorganisation', klar: '.sf-org', forbered: 'aterstall' },
   'Reglerna efter återställning': { hash: '#/regler', klar: '#sf-att-godkanna', forbered: 'aterstall' },
+  // Runda 14, r5: servicenivåerna och incidenterna efter återställning.
+  'Servicenivåsidan efter återställning': { hash: '#/servicenivaer', klar: '#sn-rapport', forbered: 'aterstall' },
   // Runda 6, r6.
   'Verksamhetschefens startsida': { hash: '#/lakemedelsansvar', klar: '#la-pam', forbered: 'aterstall' },
   'Inkorgen efter återställning': { hash: '#/inkorg', klar: '#ik-mallar', forbered: 'aterstall' },
@@ -678,6 +680,12 @@ export const UPPGIFTER = [
     id: 'valj-yrkesroll', namn: 'Välja yrkesroll och starta första uppdraget', roll: 'lak-kard', start: 'Startsidan för testare',
     text: 'Du har fått en länk till ett test av Vårdkällan och arbetar som läkare på sjukhus. Välj ditt yrke och gör det första uppdraget.',
     kontroll: { sel: '#testare-panel .tp-jamforelse', text: 'Ta emot dagens första patient' },
+  },
+  // Runda 14, r5: systemförvaltaren registrerar en incident.
+  {
+    id: 'registrera-incident', namn: 'Registrera en incident', roll: 'sysf', start: 'Servicenivåsidan efter återställning',
+    text: 'Du är systemförvaltare. Användarna kan inte logga in. Registrera det som en incident och se när beställaren ska ha rapporten.',
+    kontroll: { notis: 'Incidenten är registrerad' },
   },
 ];
 

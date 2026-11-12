@@ -14,6 +14,16 @@
           "var": "#/servicenivaer",
           "rubrik": "Servicenivåer och incidenter",
           "text": "Registrera en incident genom att svara på två frågor. Systemet sätter prioriteten enligt servicenivåavtalet, säger när beställaren ska ha rapporten och när processen för en större incident ska startas, och räknar månadsrapporten för servicenivåerna. Incidentrapporten till beställaren hämtas utan patientuppgifter."
+        },
+        {
+          "id": "utbildningsmaterial-1-4-0",
+          "roller": [
+            "personal"
+          ],
+          "omfattning": "liten",
+          "var": "#/utbildning",
+          "rubrik": "Utbildningsmaterial och instruktionsfilmer för din roll",
+          "text": "Det finns nu ett utbildningsmaterial för varje roll med de vanliga arbetsflödena, övningarna och uppdragen, och korta instruktionsfilmer med textade steg, till exempel hur du skriver en daganteckning eller ger en dos. Materialet och filmerna finns i Vårdkällans dokumentation på GitHub, och övningarna gör du som förut under Utbildning."
         }
       ]
     },
