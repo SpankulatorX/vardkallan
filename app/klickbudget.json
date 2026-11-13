@@ -1,8 +1,8 @@
 {
-  "tid": "2026-11-12T17:47:59.195Z",
-  "bas": "http://127.0.0.1:18142",
+  "tid": "2026-11-13T07:49:05.214Z",
+  "bas": "http://127.0.0.1:18140",
   "webblasare": "Chromium 147.0.7727.15",
-  "gransnittHash": "becb8ffb6381172e06fce34bccb1303b98a36484ee2a9d6fdee80bd4aae3a232",
+  "gransnittHash": "fbfad8053070c0f5cab8084ef337295aba97a2513e543ddbdea4b4aac780435d",
   "regler": "Klick på knappar, länkar och rader räknas. En rullgardinslista som måste ändras räknas som två klick. Varje flytt till ett textfält räknas som ett fältbyte, utom när fältet redan har fokus. Text som skrivs räknas inte tecken för tecken. Tangenter som Enter räknas.",
   "floden": [
     {
@@ -2125,6 +2125,132 @@
         "klick: Läkare på sjukhus",
         "klick: en patient i arbetslistan"
       ]
+    },
+    {
+      "id": "skriv-intyg",
+      "namn": "Skriva ett intyg i intygsapplikationen",
+      "roll": "lak-vc",
+      "start": "Journalen för patienten på vårdcentralen",
+      "budget": 2,
+      "motivering": "Sussa 2.2.1.9. Ett klick på fliken Intyg och ett på Skriv intyget. Systemet har föreslagit det intyg som passar patienten och visar bara de intyg som får skrivas, och utkastet öppnas i intygsapplikationen med patienten, läkaren, vårdenheten och diagnosen ifyllda.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Intyg",
+        "klick: Skriv intyget"
+      ]
+    },
+    {
+      "id": "skicka-eremiss",
+      "namn": "Skicka en e-remiss till en vårdgivare utanför Vårdkällan",
+      "roll": "lak-vc",
+      "start": "Journalen för patienten på vårdcentralen",
+      "budget": 3,
+      "motivering": "Sussa 2.2.1.12 och 3.3.1.2. Ett klick på fliken Remisser, ett på Skicka e-remiss och ett på Skicka. Frågeställningen har fokus direkt, mottagare och prioritet är förvalda, och patienten, remittenten, vårdenheten och diagnoserna från den egna vårdenheten fyller systemet i.",
+      "klick": 3,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 3,
+      "inomBudget": true,
+      "steg": [
+        "klick: Remisser",
+        "klick: Skicka e-remiss till annan vårdgivare",
+        "har redan fokus: frågeställningen",
+        "klick: Skicka e-remissen"
+      ]
+    },
+    {
+      "id": "las-mellanarkiv",
+      "namn": "Läsa en äldre anteckning ur mellanarkivet",
+      "roll": "lak-kard",
+      "start": "Patientens översikt",
+      "budget": 2,
+      "motivering": "Sussa 5.4.2.2. Ett klick på fliken Journal och ett på anteckningen, som står bland de andra märkt Ur mellanarkivet. Ingen behöver veta att mellanarkivet finns eller söka där: systemet hämtar handlingen, prövar behörigheten och säger att innehållet är oförändrat.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: fliken Journal",
+        "klick: anteckningen Ur mellanarkivet"
+      ]
+    },
+    {
+      "id": "overfor-mellanarkiv",
+      "namn": "För över äldre journalhandlingar till mellanarkivet",
+      "roll": "ark",
+      "start": "E-arkiv och gallring",
+      "budget": 5,
+      "motivering": "Sussa 5.4.2.2. Ett klick på Överföring till mellanarkiv, ett fältbyte till diarienumret, ett klick på Registrera beslutet, ett på Visa underlag och ett på För över till mellanarkivet. Beslutsdatumet är förvalt, beslutsfattare och lagrum fyller systemet i, och systemet räknar fram vilka handlingar som ska föras över och kontrollerar paketen.",
+      "klick": 4,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 5,
+      "inomBudget": true,
+      "steg": [
+        "klick: Överföring till mellanarkiv",
+        "fältbyte: diarienumret",
+        "klick: Registrera beslutet",
+        "klick: Visa underlag",
+        "klick: För över till mellanarkivet"
+      ]
+    },
+    {
+      "id": "oppna-reservdator",
+      "namn": "Göra en dator till vårdenhetens reservdator för läkemedel",
+      "roll": "ssk-kard",
+      "start": "Arbetslistan efter inloggning",
+      "budget": 2,
+      "motivering": "Sussa 11.2.1.8. Ett klick på Läkemedel att ge och ett på Reservdator för läkemedel. Sedan hämtar sidan själv listan över alla inskrivna patienter var fjärde minut, och ingen behöver göra något mer.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Läkemedel att ge i menyn",
+        "klick: Reservdator för läkemedel"
+      ]
+    },
+    {
+      "id": "registrera-incident",
+      "namn": "Registrera en incident",
+      "roll": "sysf",
+      "start": "Servicenivåsidan efter återställning",
+      "budget": 4,
+      "motivering": "Ett fältbyte till vad som har hänt, ett klick för hur många som berörs, ett för om vården kan arbeta och ett på Registrera incidenten. Systemet sätter prioriteten enligt servicenivåavtalet, tiden och sorten (driftstörning) och säger direkt när beställaren ska ha rapporten och när processen för en större incident ska startas.",
+      "klick": 3,
+      "faltbyten": 1,
+      "tangenter": 0,
+      "uppmatt": 4,
+      "inomBudget": true,
+      "steg": [
+        "fältbyte: vad som har hänt",
+        "klick: Alla eller en väsentlig del av användarna berörs",
+        "klick: Vården kan inte använda systemet",
+        "klick: Registrera incidenten"
+      ]
+    },
+    {
+      "id": "inloggning-extern",
+      "namn": "Logga in genom vårdgivarens inloggningstjänst",
+      "roll": "lak-kard",
+      "start": "Inloggningssidan med en inkopplad inloggningstjänst",
+      "budget": 2,
+      "motivering": "Sussa 5.2.1.1. Ett klick på tjänsten på inloggningssidan och ett på Logga in i tjänsten. Uppdraget, vårdenheten och behörigheten kommer ur biljetten och katalogen, så personen väljer ingenting i Vårdkällan. I en verklig tjänst ersätts klicket i tjänsten av SITHS-kortet.",
+      "klick": 2,
+      "faltbyten": 0,
+      "tangenter": 0,
+      "uppmatt": 2,
+      "inomBudget": true,
+      "steg": [
+        "klick: Övningstjänst för inloggning (simulerad)",
+        "klick: Logga in i tjänsten"
+      ]
     }
   ],
   "tester": [
@@ -2594,6 +2720,34 @@
     },
     {
       "namn": "Gränssnitt > Klickbudget > Välja yrkesroll och starta första uppdraget inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skriva ett intyg i intygsapplikationen inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Skicka en e-remiss till en vårdgivare utanför Vårdkällan inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Läsa en äldre anteckning ur mellanarkivet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > För över äldre journalhandlingar till mellanarkivet inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Göra en dator till vårdenhetens reservdator för läkemedel inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Registrera en incident inom budget",
+      "status": "grön"
+    },
+    {
+      "namn": "Gränssnitt > Klickbudget > Logga in genom vårdgivarens inloggningstjänst inom budget",
       "status": "grön"
     }
   ]
