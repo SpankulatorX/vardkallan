@@ -144,6 +144,24 @@
       ]
     },
     {
+      "version": "1.3.2",
+      "datum": "2026-11-13",
+      "nyheter": [
+        {
+          "id": "inkorg-news2-1-3-2",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Inkorgen visas när en NEWS2-kontroll är försenad",
+          "text": "Inkorgen kunde inte visas när en kontroll enligt NEWS2 var försenad, vilket oftast hände på kvällen. Nu visas den försenade kontrollen som de andra raderna, med vad som ska göras."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [

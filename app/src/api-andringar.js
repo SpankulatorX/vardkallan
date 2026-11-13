@@ -34,6 +34,14 @@ export const ANDRINGAR = [
       'Inloggning genom vårdgivarens egen inloggningstjänst med OpenID Connect (authorization code och PKCE), konfigurationen av tjänsterna med fyra ögon och övningstjänsten i det interna API:t (docs/api-avvikelser.md)',
     ],
   },
+  // Version 1.3.2: inkorgen vid försenad NEWS2.
+  {
+    version: '1.3.2', datum: '2026-11-13',
+    text: 'Inga nya resurstyper eller skrivningar i FHIR.',
+    resurser: [], skrivning: [], annat: [
+      'Åtgärden för en försenad kontroll enligt NEWS2 i inkorgen är en lista, som för ett larm',
+    ],
+  },
   // Runda 13: version 1.3.1, rättelserna för kvällar och nätter.
   {
     version: '1.3.1', datum: '2026-11-12',
