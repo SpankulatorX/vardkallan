@@ -1,7 +1,7 @@
 {
-  "tid": "2026-11-12T11:25:29.641Z",
+  "tid": "2026-11-13T09:59:27.505Z",
   "validator": "HL7 FHIR Validation tool 7.0.3",
-  "fhirKodHash": "8fc0524315f679650cd8d33ecc4b7b5f79551f754c5796db2be880c223f0bb09",
+  "fhirKodHash": "3222b506ad0c4b86897dcd2d36a3e39dbe0d7eabcdb840a643cada27b1d0726e",
   "kodfiler": [
     "arkiv.js",
     "atgarder.js",
@@ -15,20 +15,22 @@
     "labb-fhir.js",
     "medicinteknik-rutter.js",
     "medicinteknik.js",
+    "mellanarkiv.js",
     "migreringsimport.js",
     "oppet-api.js",
     "patientnara.js",
     "prenumeration.js",
     "produktionssystem.js",
+    "rivta/journal.js",
     "systemkonton.js",
     "tidbok-fhir.js",
     "tillvaxt-r11.js",
     "tjanstekontrakt.js",
     "vitalparametrar.js"
   ],
-  "resurser": 6057,
+  "resurser": 6054,
   "fel": 0,
-  "varningar": 7446,
+  "varningar": 7442,
   "saknas": [],
   "perTyp": {
     "Patient": {
@@ -102,9 +104,9 @@
       "varningar": 28
     },
     "Procedure": {
-      "resurser": 10,
+      "resurser": 9,
       "fel": 0,
-      "varningar": 20
+      "varningar": 18
     },
     "Composition": {
       "resurser": 213,
@@ -142,9 +144,9 @@
       "varningar": 1
     },
     "ChargeItem": {
-      "resurser": 349,
+      "resurser": 347,
       "fel": 0,
-      "varningar": 356
+      "varningar": 354
     },
     "Immunization": {
       "resurser": 16,
