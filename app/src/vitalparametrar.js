@@ -200,7 +200,8 @@ export function larmForInkorg(db, personal, valFor = () => ({})) {
         patientId: p.id, ankareId: a.ankareId, tid: a.tid, poang: a.poang, komplett: a.komplett, risk: a.risk,
         rubrik: 'Kontrollen enligt NEWS2 är försenad',
         text: `Senaste NEWS2 är ${a.poang} från ${klockText(a.tid)}. Nästa kontroll skulle ha gjorts ${klockText(a.nastaKontroll)}.`,
-        atgard: 'Ta en ny kontroll av vitalparametrarna nu.', frekvens: a.frekvens, nastaKontroll: a.nastaKontroll, forsenad: true,
+        // Runda 14, r5: en lista, som för ett larm. Inkorgen slår ihop listan och kunde inte visas när en kontroll var försenad.
+        atgard: ['Ta en ny kontroll av vitalparametrarna nu.'], frekvens: a.frekvens, nastaKontroll: a.nastaKontroll, forsenad: true,
         href: `#/patient/${encodeURIComponent(p.id)}/matvarden`, demoregel: DEMOREGEL,
       });
       continue;

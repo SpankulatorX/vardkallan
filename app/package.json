@@ -1,6 +1,6 @@
 {
   "name": "vardkallan",
-  "version": "1.3.1",
+  "version": "1.3.2",
   "private": true,
   "type": "module",
   "description": "Vårdkällan, ett öppet vårdinformationssystem. Publik demo med påhittade patienter.",

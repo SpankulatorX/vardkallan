@@ -2,6 +2,24 @@
   "beskrivning": "Nyheter per version och roll (Sussa 10.1.1.4). Den senaste versionen ska vara samma som version i package.json. roller är yrken ur seed/personal.js, invanare för Min journal, personal för all personal och alla för alla. omfattning är stor när arbetssättet ändras och liten när något bara har tillkommit.",
   "versioner": [
     {
+      "version": "1.3.2",
+      "datum": "2026-11-13",
+      "nyheter": [
+        {
+          "id": "inkorg-news2-1-3-2",
+          "roller": [
+            "sjukskoterska",
+            "underskoterska",
+            "lakare"
+          ],
+          "omfattning": "liten",
+          "var": null,
+          "rubrik": "Inkorgen visas när en NEWS2-kontroll är försenad",
+          "text": "Inkorgen kunde inte visas när en kontroll enligt NEWS2 var försenad, vilket oftast hände på kvällen. Nu visas den försenade kontrollen som de andra raderna, med vad som ska göras."
+        }
+      ]
+    },
+    {
       "version": "1.3.1",
       "datum": "2026-11-12",
       "nyheter": [
