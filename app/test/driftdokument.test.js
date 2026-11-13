@@ -39,8 +39,9 @@ describe('Driftdokument', () => {
     const saknas = [];
     for (const d of DOKUMENT) {
       for (const f of filer(d.text)) {
-        // I Docker-bygget finns bara app/. Hänvisningar till docs/ prövas när repot är monterat.
-        if (f.startsWith('docs/') && !finnsDocs) continue;
+        // I Docker-bygget finns bara de kataloger i app/ som Dockerfile kopierar. Hänvisningar till docs/, Dockerfile och
+        // annat utanför dem prövas när repot är monterat.
+        if (!finnsDocs && !/^app\/(src|public|scripts|test|rivta)\//.test(f)) continue;
         if (!existsSync(join(ROT, f))) saknas.push(`${d.fil}: ${f}`);
       }
     }
