@@ -831,4 +831,12 @@ async function start() {
   await uppdateraInkorg();
   rita();
 }
+// Runda 14, sammanslagningen: ett datumfält utan övre gräns tar upp till sex siffror i året, så den som skriver
+// 20261120 får året 202611 och ett ogiltigt datum. Varje datumfält får därför ett år med högst fyra siffror, och
+// siffrorna går vidare till månaden och dagen av sig själva.
+const AR_HOGST = '9999-12-31';
+const begransaDatum = (rot) => { for (const e of rot.querySelectorAll?.('input[type="date"]:not([max])') ?? []) e.max = AR_HOGST; };
+new MutationObserver((andringar) => { for (const a of andringar) for (const n of a.addedNodes) if (n.nodeType === 1) { if (n.matches('input[type="date"]:not([max])')) n.max = AR_HOGST; begransaDatum(n); } })
+  .observe(document.documentElement, { childList: true, subtree: true });
+begransaDatum(document);
 start();
