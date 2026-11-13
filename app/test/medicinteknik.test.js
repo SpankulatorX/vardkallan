@@ -1,7 +1,7 @@
 // Medicinteknisk utrustning (runda 9, r2, Sussa 3.6.1.1, 3.6.1.2, 3.6.1.4 till 3.6.1.7 och 3.5.2.19): mottagning i
 // FHIR och HL7 v2 med utrustningens nyckel, koppling till patienten, klassning och godkännande, egenmätning i Min journal
 // och pumpens rapporter som givna doser.
-import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
+import { describe, test, expect, beforeAll, afterAll, setSystemTime } from 'bun:test';
 import { testserver, klient, sandlada } from './hjalp.js';
 import * as mt from '../src/medicinteknik.js';
 import { MATTYPER } from '../src/journal.js';
@@ -435,6 +435,25 @@ describe('Medicinteknik, infusionspump', () => {
     expect(d.query("SELECT count(*) AS n FROM mt_meddelanden WHERE koppling_id = ? AND simulerat = 1 AND status = 'mottaget' AND format = 'fhir'").get(k.id).n).toBe(n);
     // Samma tid igen ger inga nya meddelanden.
     expect(mt.efterTid(d, MATTYPER, new Date(start + 30 * MIN + 1000))).toBe(0);
+  });
+
+  // Runda 14, sammanslagningen: när monitorn kopplades strax före ett jämnt femminutersslag kom nästa värde efter någon
+  // sekund i stället för efter fem minuter, och testet ovan föll ungefär en gång av trehundra beroende på klockan.
+  test('två simulerade värden från samma utrustning kommer aldrig tätare än utrustningens intervall, oavsett när den kopplades', async () => {
+    const s = await inloggad('ssk-kard');
+    const d = db(s);
+    const steg = 5 * MIN;
+    const start = Math.floor(Date.now() / steg) * steg - 500;
+    setSystemTime(new Date(start));
+    let k;
+    try { k = (await s.post('/api/patient/p01/mt/koppla', { streckkod: 'MT-MON-0002' })).data.koppling; } finally { setSystemTime(); }
+    expect(Date.parse(k.start)).toBe(start);
+    const nu = new Date(start + 30 * MIN + 1000);
+    mt.efterTid(d, MATTYPER, nu);
+    expect(mt.efterTid(d, MATTYPER, nu)).toBe(0);
+    const tider = d.query("SELECT tid FROM mt_meddelanden WHERE koppling_id = ? AND simulerat = 1 AND status = 'mottaget' ORDER BY tid").all(k.id).map(r => Date.parse(r.tid));
+    expect(tider.length).toBeGreaterThanOrEqual(6);
+    for (let i = 1; i < tider.length; i++) expect(tider[i] - tider[i - 1]).toBeGreaterThanOrEqual(steg);
   });
 });
 

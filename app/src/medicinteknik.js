@@ -927,8 +927,9 @@ export function efterTid(db, matttyper, nu = new Date()) {
     const steg = (u.typ === 'monitor' ? MONITOR_MIN : PUMP_MIN) * MIN;
     const sista = db.query("SELECT max(tid) AS t FROM mt_meddelanden WHERE koppling_id = ? AND simulerat = 1 AND status = 'mottaget'").get(k.id)?.t;
     let fran = Math.max(Date.parse(sista ?? k.start), nu.getTime() - SIMULERA_BAKAT_MS);
-    // Det första värdet kommer direkt när utrustningen kopplas, sedan ett per intervall.
-    let nasta = sista ? Math.floor(fran / steg) * steg + steg : Date.parse(k.start);
+    // Det första värdet kommer direkt när utrustningen kopplas, sedan ett per intervall räknat från det senaste värdet.
+    // Runda 14: nästa värde avrundades förut till ett jämnt slag, så det kunde komma någon sekund efter det förra.
+    let nasta = sista ? fran + steg : Date.parse(k.start);
     while (nasta <= nu.getTime()) {
       const tid = new Date(nasta).toISOString();
       const kropp = u.typ === 'monitor' ? simuleradMonitor(db, u, k, tid) : simuleradPump(db, u, k, new Date(Math.max(Date.parse(k.start), nasta - steg)).toISOString(), tid);
