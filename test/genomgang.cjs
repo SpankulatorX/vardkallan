@@ -2339,7 +2339,9 @@ MENY.systemforvaltare.splice(MENY.systemforvaltare.indexOf('Kodverk och masterda
       await page.click('.op-flikar a[href="#/operation/block"]');
       await forvanta(page, 'table.op-block', 'Ortopediska kliniken USÖ');
       await page.click('.op-flikar a[href="#/operation/uppvakning"]');
-      await forvanta(page, '#op-vy', 'Ingen patient på uppvakningen');
+      // Runda 14, sammanslagningen: dagens operationer har kommit så långt som klockan har hunnit (runda 13, r4), så
+      // mitt på förmiddagen ligger en patient på uppvakningen. Steget gäller vid alla klockslag.
+      await forvanta(page, '#op-vy', /Ingen patient på uppvakningen|På uppvakningen sedan/);
       await page.click('.op-flikar a[href="#/operation/forrad"]');
       await forvanta(page, '#op-vy', 'Bencement 40 g');
     });
