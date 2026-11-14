@@ -61,13 +61,13 @@ Rutinerna i driften av systemet finns i systemet själv: ändringar av regler, p
 
 ## Utvecklarforum
 
-Ett utvecklarforum är en öppen plats där utvecklare ställer frågor, visar vad de har byggt och diskuterar förslag innan de blir ärenden. När ett forum öppnas fungerar det så här:
+Ett utvecklarforum är en öppen plats där utvecklare ställer frågor, visar vad de har byggt och diskuterar förslag innan de blir ärenden. Forumet finns sedan 2026-11-14 som GitHub Discussions i repot (https://github.com/SpankulatorX/vardkallan/discussions) och fungerar så här:
 
-- Det har några få kategorier: frågor om API:t och tillämpningar, idéer och förslag, visa vad du har byggt och frågor om utbildningen.
-- En ansvarig organisation har moderatorer som svarar, flyttar en fråga som visar sig vara ett fel till ett ärende och länkar svaren till dokumentationen, så att samma fråga inte behöver ställas två gånger.
-- Forumet har samma regler som repot: inga riktiga personuppgifter och inga detaljer om säkerhetsbrister.
+- Det har några få kategorier: frågor om API:t, driften och tillämpningar, idéer och förslag, det du har byggt, och övrigt. Ett fel rapporteras som ett ärende.
+- Förvaltaren svarar när det går, flyttar en fråga som visar sig vara ett fel till ett ärende och länkar svaren till dokumentationen, så att samma fråga inte behöver ställas två gånger.
+- Forumet har samma regler som repot: inga riktiga personuppgifter och inga detaljer om säkerhetsbrister. Säkerhetsbrister rapporteras privat, som `SECURITY.md` beskriver.
 
-Ett forum behöver en ansvarig organisation som håller det levande och svarar. Det öppna projektet är inte en sådan organisation. I dag finns ärendena och ändringsförslagen på GitHub, där frågor och förslag kan lämnas och diskuteras öppet.
+Projektet förvaltas av en enskild person, som inte lovar några svarstider. Ett forum som vården kan lita på behöver en ansvarig organisation med moderatorer och avtalade tider, och den organisation som inför Vårdkällan kan ta över forumet som det är.
 
 ## Support
 

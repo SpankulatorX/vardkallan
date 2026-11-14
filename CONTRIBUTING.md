@@ -100,7 +100,7 @@ Allt i repot och i demon är påhittat. Patienter har testpersonnummer från Ska
 
 ## Säkerhetsbrister
 
-Rapportera inte en säkerhetsbrist i ett öppet ärende eller ett ändringsförslag, eftersom alla kan läsa dem. Projektet behöver en kontaktväg för sådana rapporter. Använd GitHubs funktion för privata säkerhetsrapporter för repot om den är påslagen. Är den inte det, öppna ett ärende som bara säger att du vill rapportera en säkerhetsbrist och ber om en privat kontaktväg, utan detaljer om bristen.
+Rapportera inte en säkerhetsbrist i ett öppet ärende, ett ändringsförslag eller forumet, eftersom alla kan läsa dem. Använd GitHubs funktion för privata säkerhetsrapporter: fliken för säkerhet i repot och knappen för att rapportera en sårbarhet. `SECURITY.md` beskriver vad som händer med rapporten.
 
 Öppna fynd från säkerhetsgranskningarna står i `app/src/sakerhetsfynd.json` tills de är rättade och prövade, och säkerhetsarkitekturen beskrivs i `docs/sakerhetsarkitektur.md`.
 
